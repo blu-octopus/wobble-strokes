@@ -1,0 +1,52 @@
+{
+  "name": "wobble-svg",
+  "version": "0.1.0",
+  "description": "Variable-width hand-drawn SVG path generator for web and React Native. Deterministic, dependency-free, and tuned to procedural design systems.",
+  "keywords": [
+    "svg",
+    "hand-drawn",
+    "procedural",
+    "paths",
+    "react-native",
+    "design-systems",
+    "shapegen",
+    "wobble"
+  ],
+  "license": "MIT",
+  "author": "Daphne Cheng <daphne.cheng.pink@gmail.com>",
+  "homepage": "https://wobble-svg.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blu-octopus/wobble-strokes"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitepress": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
