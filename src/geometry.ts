@@ -87,20 +87,46 @@ export function segmentNormal(a: Point, b: Point): { nx: number; ny: number } {
 }
 
 /**
+ * Densify an open polyline by interpolating points along each edge so the
+ * noise function has enough samples to read as a continuous wobble (same
+ * ~STEP spacing `roundedRectBoundary` uses). Callers can pass already-dense
+ * points; short edges simply keep their endpoints.
+ */
+function densifyPolyline(points: Point[], stepPx = STEP): Point[] {
+  if (points.length < 2) return points.slice();
+  const out: Point[] = [{ ...points[0] }];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+    const steps = Math.max(1, Math.round(segLen / stepPx));
+    for (let s = 1; s <= steps; s++) {
+      const f = s / steps;
+      out.push({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f });
+    }
+  }
+  return out;
+}
+
+/**
  * Samples an OPEN polyline (e.g. a tail's two visible edges: base-left ->
  * apex -> base-right) with a per-vertex outward normal, for shapes that
- * shouldn't close back into a loop.
+ * shouldn't close back into a loop. Sparse control points are densified
+ * along each edge (~4px) so wobble has enough samples to act on — same
+ * density `roundedRectBoundary` gets for free.
  */
 export function openPolylineBoundary(points: Point[]): BoundarySample[] {
   if (points.length < 2) return points.map((p) => ({ ...p, nx: 0, ny: 0, t: 0 }));
 
+  const dense = densifyPolyline(points);
+
   // Per-vertex normal: average of the two adjacent segment normals (mitered), so corners don't pinch.
   const samples: BoundarySample[] = [];
   let t = 0;
-  for (let i = 0; i < points.length; i++) {
-    const prev = points[i - 1];
-    const curr = points[i];
-    const next = points[i + 1];
+  for (let i = 0; i < dense.length; i++) {
+    const prev = dense[i - 1];
+    const curr = dense[i];
+    const next = dense[i + 1];
     const nPrev = prev ? segmentNormal(prev, curr) : undefined;
     const nNext = next ? segmentNormal(curr, next) : undefined;
     const n = nPrev && nNext ? { nx: (nPrev.nx + nNext.nx) / 2, ny: (nPrev.ny + nNext.ny) / 2 } : nPrev ?? nNext!;

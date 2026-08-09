@@ -101,9 +101,9 @@ interface WobbleOptions {
 - **`frequency`** — How tightly the wobble oscillates along the boundary's arc-length. Lower = slower, more organic changes; higher = rapid wiggles.
 - **`wiggle`** — How far the centerline itself jitters, in px (the *position* wobble, distinct from width).
 - **`smoothen`** — 0-1 smoothing pass strength; higher softens jitter into gentler curves. Applied as a moving average over neighboring samples.
-- **`halfWidth`** — Base half-width of the ribbon, in px (roughly `strokeWidth / 2`). No default — always required.
+- **`halfWidth`** — Base half-width of the ribbon, in px (roughly `strokeWidth / 2`). No default — always required. After variance is applied, width is floored at **0.4px** so the ribbon never collapses to a hairline.
 - **`widthVariance`** — How much the width itself varies, as a fraction of `halfWidth` (0 = constant width, matching a normal stroke).
-- **`closed`** — Whether the input boundary is a closed loop (`roundedRectBoundary`) or an open run (`openPolylineBoundary`). Must match the boundary you pass in.
+- **`closed`** — Whether the input boundary is a closed loop (`roundedRectBoundary`) or an open run (`openPolylineBoundary`). Defaults to `true`. Must match the boundary you pass in.
 
 ---
 
@@ -133,7 +133,7 @@ const boundary = roundedRectBoundary(200, 100, 15);
 
 ## `openPolylineBoundary()`
 
-Samples an **open** polyline — e.g. a tail's two visible edges (base-left to apex to base-right) — with a mitered per-vertex outward normal, for shapes that shouldn't close back into a loop.
+Samples an **open** polyline — e.g. a tail's two visible edges (base-left to apex to base-right) — with a mitered per-vertex outward normal, for shapes that shouldn't close back into a loop. Sparse control points are densified along each edge (~4px spacing, same as `roundedRectBoundary`) so the noise function has enough samples to wobble continuously.
 
 ```typescript
 function openPolylineBoundary(points: Point[]): BoundarySample[];
@@ -144,7 +144,8 @@ function openPolylineBoundary(points: Point[]): BoundarySample[];
 ```javascript
 import { openPolylineBoundary, generateWobblePath } from 'wobble-svg';
 
-// A scalene (asymmetric) triangle tail, not a mirrored isoceles one
+// A scalene (asymmetric) triangle tail, not a mirrored isoceles one.
+// Three control points are enough — edges are densified automatically.
 const boundary = openPolylineBoundary([
   { x: 2, y: 0 },
   { x: 7, y: 19 },

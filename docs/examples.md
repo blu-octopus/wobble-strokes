@@ -59,6 +59,8 @@ import { openPolylineBoundary, generateWobblePath } from 'wobble-svg';
 
 // Deliberately asymmetric: one short/steep edge, one long/shallow edge —
 // a real hand-drawn nub is never a mirrored isoceles triangle.
+// Sparse vertices are densified automatically along each edge.
+// a real hand-drawn nub is never a mirrored isoceles triangle.
 const boundary = openPolylineBoundary([
   { x: 2, y: 0 },
   { x: 7, y: 20 },
@@ -235,7 +237,8 @@ Every consumer passes a different `seed` (so no two components wobble in lockste
 - **React Native**: the exact same `pathData` string works with `<Path d={pathData}>` from `react-native-svg` — nothing else changes.
 - **Seed variation**: increment seed by 1 for each element in a grid to create subtle variation without true randomness.
 - **Width variation**: higher `widthVariance` (0.7+) creates more organic, flowing strokes; lower (0.2-0.3) looks more refined and closer to a constant stroke.
-- **halfWidth has no default** — it's the one required option; a good starting point is `desiredStrokeWidth / 2`.
+- **halfWidth has no default** — it's the one required option; a good starting point is `desiredStrokeWidth / 2`. After variance, width is floored at 0.4px so thin strokes never collapse.
+- **`openPolylineBoundary` densifies** — sparse control points are interpolated (~4px) along each edge; you do not need to pre-sample.
 
 ---
 
