@@ -1,7 +1,7 @@
 // Chrome for the landing page itself: every panel, button, and pill on this
 // page is bordered by the real library, not CSS `border`. This is the same
 // "generated overlay" pattern documented in examples.md (WobbleBorder), just
-// framework-free — measure the element, sample a rounded-rect boundary,
+// framework-free ??? measure the element, sample a rounded-rect boundary,
 // perturb it, and drop the resulting ribbon in as an absolutely-positioned
 // <svg> behind the element's own content.
 import { roundedRectBoundary, generateWobbleRibbon } from './vendor/wobble-svg.mjs';
@@ -94,6 +94,6 @@ export function attachWobbleBorder(el, initial = {}) {
 
 export function attachWobbleBorders(selector, initial = {}) {
   return Array.from(document.querySelectorAll(selector)).map((el, i) =>
-    attachWobbleBorder(el, { seed: (initial.seed ?? 1) + i, ...initial }),
+    attachWobbleBorder(el, { ...initial, seed: (initial.seed ?? 1) + i }),
   );
 }

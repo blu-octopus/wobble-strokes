@@ -2,11 +2,11 @@ import { smoothNoise1D } from './noise';
 import { toClosedPath, toOpenPath, toRibbonPath, type BoundarySample, type Point } from './geometry';
 
 export interface WobbleOptions {
-  /** Fixed per instance, not randomized per render — same seed always reproduces the same wobble. */
+  /** Fixed per instance, not randomized per render ??? same seed always reproduces the same wobble. */
   seed?: number;
   /** How tightly the wobble oscillates along the boundary's arc-length. */
   frequency?: number;
-  /** How far the centerline itself jitters, in px — the position wobble. */
+  /** How far the centerline itself jitters, in px ??? the position wobble. */
   wiggle?: number;
   /** 0-1 smoothing pass strength; higher softens jitter into gentler curves. */
   smoothen?: number;
@@ -16,13 +16,12 @@ export interface WobbleOptions {
   widthVariance?: number;
   /**
    * Whether the input boundary is a closed loop (a rect/pill) or an open run
-   * (e.g. a tail's two edges). Required, not inferred — a plain
-   * `BoundarySample[]` looks the same either way, so getting this wrong for
-   * a hand-built open boundary silently closes it into a loop instead of
-   * erroring. Defaults to `true` at runtime for plain-JS callers, but
-   * TypeScript callers must state it explicitly.
+   * (e.g. a tail's two edges). Not inferred �X a plain `BoundarySample[]`
+   * looks the same either way, so getting this wrong for a hand-built open
+   * boundary silently closes it into a loop instead of erroring.
+   * Defaults to `true`. Pass `false` for `openPolylineBoundary` results.
    */
-  closed: boolean;
+  closed?: boolean;
 }
 
 export interface WobbleRibbon {
@@ -30,9 +29,9 @@ export interface WobbleRibbon {
   outer: Point[];
   /** Inner boundary points after wobble + width, in order (mirrors outer). */
   inner: Point[];
-  /** Path along the outer boundary only — usable as a plain fill silhouette. */
+  /** Path along the outer boundary only ??? usable as a plain fill silhouette. */
   fillPath: string;
-  /** Full ribbon path: outer forward + inner backward, closed — the hand-drawn stroke itself. */
+  /** Full ribbon path: outer forward + inner backward, closed ??? the hand-drawn stroke itself. */
   ribbonPath: string;
 }
 
@@ -59,7 +58,7 @@ export function generateWobblePath(boundary: BoundarySample[], options: WobbleOp
  * Perturbs a sampled boundary into a hand-drawn, variable-width ribbon: a
  * closed fill shape tracing the outer and inner edges of a wobbly band, the
  * same structure Figma's own Dynamic Stroke export uses (not a constant-
- * width stroked line). Pure math — the result is plain point arrays and SVG
+ * width stroked line). Pure math ??? the result is plain point arrays and SVG
  * path strings, so the same call renders identically via a browser `<path>`
  * or React Native's `<Path>`.
  */
@@ -83,6 +82,8 @@ export function generateWobbleRibbon(boundary: BoundarySample[], options: Wobble
 
   const perturbed: SmoothPoint[] = boundary.map((p) => {
     const jitter = jitterNoise(p.t) * wiggle;
+    // Floor keeps the ribbon from collapsing to a hairline when variance
+    // drives width near zero; documented in the API reference.
     const width = Math.max(0.4, halfWidth * (1 + widthNoise(p.t) * widthVariance));
     return { x: p.x + p.nx * jitter, y: p.y + p.ny * jitter, nx: p.nx, ny: p.ny, width };
   });
