@@ -25,23 +25,28 @@ npm install wobble-svg
 ## Quick Start
 
 ```javascript
-import { generateWobblePath, roundedRectPoints } from 'wobble-svg';
+import { roundedRectBoundary, generateWobblePath } from 'wobble-svg';
 
-// Generate a wobbly rounded rectangle
-const points = roundedRectPoints(200, 100, 10);
-const pathData = generateWobblePath(points, {
+// 1. Sample a rounded rectangle's boundary
+const boundary = roundedRectBoundary(200, 100, 10);
+
+// 2. Perturb it into a hand-drawn, variable-width ribbon path
+const pathData = generateWobblePath(boundary, {
   seed: 42,
+  halfWidth: 1,        // required — roughly desired stroke width / 2
   frequency: 0.05,
   wiggle: 1,
   smoothen: 0.5,
   widthVariance: 0.5
 });
 
-// Render in SVG
+// 3. A wobble path is a FILLED band, not a stroked line
 const svg = `<svg viewBox="0 0 200 100">
-  <path d="${pathData}" fill="none" stroke="#333" stroke-width="2" />
+  <path d="${pathData}" fill="#333" fill-rule="evenodd" />
 </svg>`;
 ```
+
+See the [docs](https://wobble-svg.vercel.app) for why the output is a fill shape rather than a stroked line — that's the trick that makes true variable-width strokes possible.
 
 ## Documentation
 

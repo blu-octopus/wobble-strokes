@@ -2,155 +2,203 @@
 
 ## `generateWobblePath()`
 
-Generate a wobbly SVG path from a boundary point array.
+Convenience wrapper around `generateWobbleRibbon()` that returns just the ribbon path string â€” the common case when you don't need the raw outer/inner point arrays.
 
 ```typescript
 function generateWobblePath(
-  points: Point[],
+  boundary: BoundarySample[],
   options: WobbleOptions
 ): string;
 ```
 
 ### Parameters
 
-- **`points`** `Point[]` ¡X Array of `{x, y}` coordinates defining the boundary to wobble. Should be ordered (clockwise or counter-clockwise), and typically represent a closed shape.
-- **`options`** `WobbleOptions` ¡X Configuration object (see Options section)
+- **`boundary`** `BoundarySample[]` â€” Boundary samples from `roundedRectBoundary()` or `openPolylineBoundary()` (or hand-built).
+- **`options`** `WobbleOptions` â€” see [Options](#options) below.
 
 ### Returns
 
-`string` ¡X SVG path `d` attribute value, ready to render in `<path d="...">`.
-
-### Options
-
-```typescript
-interface WobbleOptions {
-  seed: number;
-  frequency?: number;     // default: 0.05
-  wiggle?: number;        // default: 1
-  smoothen?: number;      // default: 0.5
-  widthVariance?: number; // default: 0.5
-}
-```
-
-- **`seed`** (required) ¡X Integer seed for seeded PRNG. Same seed = same output.
-- **`frequency`** ¡X Controls wobble frequency (0-1). Lower = slower oscillation, higher = more rapid wiggles.
-- **`wiggle`** ¡X Amplitude multiplier. Higher = more intense wobble.
-- **`smoothen`** ¡X Curve smoothing (0-1). Higher = smoother curves.
-- **`widthVariance`** ¡X Stroke width variation (0-1). How much the path width varies; 0 = uniform, 1 = maximum variation.
+`string` â€” the same as `generateWobbleRibbon(boundary, options).ribbonPath`: an SVG path `d` value tracing both the outer and inner edges of the wobbled band, ready for `<path d="..." fill="..." fill-rule="evenodd">`.
 
 ### Example
 
 ```javascript
-import { generateWobblePath, roundedRectPoints } from 'wobble-svg';
+import { roundedRectBoundary, generateWobblePath } from 'wobble-svg';
 
-const points = roundedRectPoints(200, 100, 10);
-const path = generateWobblePath(points, {
-  seed: 123,
-  frequency: 0.05,
-  wiggle: 1,
-  smoothen: 0.5,
-  widthVariance: 0.5
-});
+const boundary = roundedRectBoundary(200, 100, 10);
+const path = generateWobblePath(boundary, { seed: 123, halfWidth: 1 });
 ```
 
 ---
 
 ## `generateWobbleRibbon()`
 
-Generate a two-path ribbon (outer and inner boundary) for strokes with visible width.
+The core function. Perturbs a boundary into a hand-drawn, variable-width ribbon and returns everything: the raw outer/inner point arrays plus two ready-to-use path strings.
 
 ```typescript
 function generateWobbleRibbon(
-  boundary: Point[],
-  options: RibbonOptions
-): { outer: Point[]; inner: Point[] };
+  boundary: BoundarySample[],
+  options: WobbleOptions
+): WobbleRibbon;
 ```
 
 ### Parameters
 
-- **`boundary`** ¡X Polyline to create a ribbon around
-- **`options`** ¡X Wobble options plus additional ribbon-specific config
+- **`boundary`** `BoundarySample[]` â€” sampled boundary to wobble (see [Getting Started](/getting-started#boundaries-not-raw-points)).
+- **`options`** `WobbleOptions` â€” see [Options](#options) below.
 
 ### Returns
-
-Object with `outer` and `inner` point arrays forming the ribbon's boundaries.
-
-### Use Case
-
-For creating stroked lines where the width is visible (e.g., dialogue bubble tails, borders).
-
----
-
-## `roundedRectPoints()`
-
-Convert a rounded rectangle definition into a point array for `generateWobblePath()`.
 
 ```typescript
-function roundedRectPoints(
-  width: number,
-  height: number,
-  radius: number
-): Point[];
+interface WobbleRibbon {
+  outer: Point[];     // Outer boundary points after wobble + width, in order
+  inner: Point[];     // Inner boundary points after wobble + width, in order (mirrors outer)
+  fillPath: string;   // Path along the OUTER boundary only â€” a plain fill silhouette, no hole
+  ribbonPath: string; // Outer + inner as one path, fill-rule="evenodd" punches the ring
+}
 ```
 
-### Parameters
-
-- **`width`** ¡X Rectangle width
-- **`height`** ¡X Rectangle height
-- **`radius`** ¡X Corner radius (applies to all four corners)
-
-### Returns
-
-`Point[]` ¡X Ordered boundary points tracing the rounded rectangle.
+Use `fillPath` when you want a solid filled shape (e.g. a bubble's white background). Use `ribbonPath` when you want the visible stroke band itself (e.g. the brown outline drawn on top of that background) â€” this is the value `generateWobblePath()` returns directly.
 
 ### Example
 
 ```javascript
-const points = roundedRectPoints(200, 100, 15);
-// points = [{x: 15, y: 0}, {x: 185, y: 0}, ..., {x: 15, y: 0}]
+import { roundedRectBoundary, generateWobbleRibbon } from 'wobble-svg';
+
+const boundary = roundedRectBoundary(160, 48, 24); // radius >= height/2 -> pill shape
+const ribbon = generateWobbleRibbon(boundary, {
+  seed: 7,
+  halfWidth: 0.75,
+  frequency: 0.05,
+  wiggle: 1,
+  smoothen: 0.5,
+  widthVariance: 0.5,
+});
+
+const svg = `<svg viewBox="0 0 160 48">
+  <path d="${ribbon.fillPath}" fill="white" />
+  <path d="${ribbon.ribbonPath}" fill="#5b3a29" fill-rule="evenodd" />
+</svg>`;
 ```
+
+---
+
+## Options
+
+```typescript
+interface WobbleOptions {
+  seed?: number;           // default: 1
+  frequency?: number;      // default: 0.05
+  wiggle?: number;         // default: 1.5
+  smoothen?: number;       // default: 0.5
+  halfWidth: number;       // REQUIRED, no default
+  widthVariance?: number;  // default: 0.5
+  closed?: boolean;        // default: true
+}
+```
+
+- **`seed`** â€” Integer seed for the deterministic PRNG. Fixed per instance, not randomized per render â€” same seed always reproduces the same wobble.
+- **`frequency`** â€” How tightly the wobble oscillates along the boundary's arc-length. Lower = slower, more organic changes; higher = rapid wiggles.
+- **`wiggle`** â€” How far the centerline itself jitters, in px (the *position* wobble, distinct from width).
+- **`smoothen`** â€” 0-1 smoothing pass strength; higher softens jitter into gentler curves. Applied as a moving average over neighboring samples.
+- **`halfWidth`** â€” Base half-width of the ribbon, in px (roughly `strokeWidth / 2`). No default â€” always required.
+- **`widthVariance`** â€” How much the width itself varies, as a fraction of `halfWidth` (0 = constant width, matching a normal stroke).
+- **`closed`** â€” Whether the input boundary is a closed loop (`roundedRectBoundary`) or an open run (`openPolylineBoundary`). Must match the boundary you pass in.
+
+---
+
+## `roundedRectBoundary()`
+
+Samples a rounded rectangle's boundary into a dense, clockwise `BoundarySample[]`, starting at the top-left corner's end.
+
+```typescript
+function roundedRectBoundary(
+  width: number,
+  height: number,
+  radius: number
+): BoundarySample[];
+```
+
+Passing `radius >= min(width, height) / 2` produces a full stadium/pill shape (the straight runs on the short axis disappear entirely).
+
+### Example
+
+```javascript
+const boundary = roundedRectBoundary(200, 100, 15);
+```
+
+---
+
+## `openPolylineBoundary()`
+
+Samples an **open** polyline â€” e.g. a tail's two visible edges (base-left to apex to base-right) â€” with a mitered per-vertex outward normal, for shapes that shouldn't close back into a loop.
+
+```typescript
+function openPolylineBoundary(points: Point[]): BoundarySample[];
+```
+
+### Example
+
+```javascript
+import { openPolylineBoundary, generateWobblePath } from 'wobble-svg';
+
+// A scalene (asymmetric) triangle tail, not a mirrored isoceles one
+const boundary = openPolylineBoundary([
+  { x: 2, y: 0 },
+  { x: 7, y: 19 },
+  { x: 17.5, y: 0 },
+]);
+
+const path = generateWobblePath(boundary, { seed: 9, halfWidth: 0.75, closed: false });
+```
+
+---
+
+## `toClosedPath()` / `toOpenPath()` / `toRibbonPath()`
+
+Lower-level path builders â€” `generateWobbleRibbon()` already calls these for you, but they're exported for custom pipelines.
+
+```typescript
+function toClosedPath(points: Point[]): string;
+function toOpenPath(points: Point[]): string;
+function toRibbonPath(outer: Point[], inner: Point[], closed?: boolean): string;
+```
+
+- **`toClosedPath`** â€” `M ... L ... Z`, closing the loop.
+- **`toOpenPath`** â€” `M ... L ...`, no closing segment.
+- **`toRibbonPath`** â€” stitches an outer and inner boundary into one ribbon. For `closed: true`, this renders outer and inner as two independent closed subpaths (an annulus â€” needs `fill-rule="evenodd"`). For `closed: false`, it's one connected loop: outer forward, across the far end, inner backward, across the near end.
 
 ---
 
 ## `mulberry32()`
 
-Seeded PRNG (pseudo-random number generator).
+The seeded PRNG backing every wobble in this package. No `Math.random()` anywhere â€” deterministic and dependency-free.
 
 ```typescript
 function mulberry32(seed: number): () => number;
 ```
 
-### Parameters
-
-- **`seed`** ¡X Integer seed
-
-### Returns
-
-Function that returns random numbers (0-1) deterministically based on the seed.
-
-### Example
+Returns a function yielding floats in `[0, 1)`.
 
 ```javascript
 import { mulberry32 } from 'wobble-svg';
 
 const rng = mulberry32(42);
-const rand1 = rng(); // always same value for seed 42
-const rand2 = rng(); // next random value for seed 42
+const a = rng(); // always the same value for seed 42
+const b = rng(); // next value in the same deterministic sequence
 ```
 
 ---
 
-## `toClosedPath()`
+## `smoothNoise1D()`
 
-Convert an array of points to an SVG path string (closed path).
+The continuous 1D noise function used internally for both the position (`wiggle`) and width (`widthVariance`) perturbation â€” a small sum of sine waves at irrational-ratio frequencies and random phases/amplitudes, seeded via `mulberry32`.
 
 ```typescript
-function toClosedPath(points: Point[]): string;
+function smoothNoise1D(seed: number, frequency: number): (t: number) => number;
 ```
 
-### Returns
-
-SVG path `d` attribute value with the path closed (Z command at end).
+Returns a function mapping an arc-length position `t` to a value roughly in `[-1, 1]`. Unlike raw per-sample PRNG noise, neighboring positions along a path get similar values â€” that continuity is what makes the wobble read as one hand-drawn line instead of static.
 
 ---
 
@@ -162,12 +210,27 @@ interface Point {
   y: number;
 }
 
+interface BoundarySample extends Point {
+  nx: number;  // outward unit normal, x component
+  ny: number;  // outward unit normal, y component
+  t: number;   // running arc-length from the start of the boundary, in px
+}
+
 interface WobbleOptions {
-  seed: number;
+  seed?: number;
   frequency?: number;
   wiggle?: number;
   smoothen?: number;
+  halfWidth: number;
   widthVariance?: number;
+  closed?: boolean;
+}
+
+interface WobbleRibbon {
+  outer: Point[];
+  inner: Point[];
+  fillPath: string;
+  ribbonPath: string;
 }
 ```
 
@@ -175,5 +238,5 @@ interface WobbleOptions {
 
 ## See Also
 
-- [Examples ¡÷](/examples) ¡X Real-world usage patterns
-- [FAQ ¡÷](/faq) ¡X Common questions
+- [Examples](/examples) â€” Real-world usage patterns, including splicing a custom notch into a boundary
+- [FAQ](/faq) â€” Common questions
