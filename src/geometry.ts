@@ -74,6 +74,19 @@ export function roundedRectBoundary(width: number, height: number, radius: numbe
 }
 
 /**
+ * The outward normal of the segment from `a` to `b`. Exported so callers
+ * composing or editing a `BoundarySample[]` by hand (e.g. splicing extra
+ * vertices into an existing boundary) can recompute normals the same way
+ * `openPolylineBoundary` does, instead of reimplementing this math.
+ */
+export function segmentNormal(a: Point, b: Point): { nx: number; ny: number } {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { nx: dy / len, ny: -dx / len };
+}
+
+/**
  * Samples an OPEN polyline (e.g. a tail's two visible edges: base-left ->
  * apex -> base-right) with a per-vertex outward normal, for shapes that
  * shouldn't close back into a loop.
@@ -82,13 +95,6 @@ export function openPolylineBoundary(points: Point[]): BoundarySample[] {
   if (points.length < 2) return points.map((p) => ({ ...p, nx: 0, ny: 0, t: 0 }));
 
   // Per-vertex normal: average of the two adjacent segment normals (mitered), so corners don't pinch.
-  const segmentNormal = (a: Point, b: Point) => {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const len = Math.hypot(dx, dy) || 1;
-    return { nx: dy / len, ny: -dx / len };
-  };
-
   const samples: BoundarySample[] = [];
   let t = 0;
   for (let i = 0; i < points.length; i++) {

@@ -14,18 +14,16 @@
   ],
   "license": "MIT",
   "author": "Daphne Cheng <daphne.cheng.pink@gmail.com>",
-  "homepage": "https://wobble-svg.vercel.app",
+  "homepage": "https://blu-octopus.github.io/wobble-strokes/",
   "repository": {
     "type": "git",
     "url": "https://github.com/blu-octopus/wobble-strokes"
   },
   "main": "dist/index.js",
-  "module": "dist/index.es.js",
-  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.es.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
   },
@@ -39,6 +37,8 @@
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
+    "site:prepare": "mkdir -p site/vendor && cp dist/index.mjs site/vendor/wobble-svg.mjs",
+    "site:dev": "npm run build && npm run site:prepare && npx --yes serve site -l 5183",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {

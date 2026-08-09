@@ -89,7 +89,7 @@ const svg = `<svg viewBox="0 0 20 20" width="100" height="100">
 The technique above works for a *standalone* tail, but if you overlay it on top of an already-wobbled bubble, the two shapes were perturbed with independent noise and never quite line up at the seam. The fix: don't generate the tail separately — **splice its vertices directly into the bubble's own boundary samples** before running `generateWobbleRibbon` once, so the tail becomes structurally part of the same continuous line.
 
 ```javascript
-import { roundedRectBoundary, generateWobbleRibbon } from 'wobble-svg';
+import { roundedRectBoundary, generateWobbleRibbon, segmentNormal } from 'wobble-svg';
 
 function spliceNotch(boundary, insertAfterIndex, notchPoints) {
   // notchPoints: e.g. [baseLeft, apex, baseRight], each a {x, y}.
@@ -101,12 +101,9 @@ function spliceNotch(boundary, insertAfterIndex, notchPoints) {
     ...boundary.slice(insertAfterIndex),
   ];
 
-  // Recompute normals for the new points by mitering against their new neighbors.
-  const segmentNormal = (a, b) => {
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const len = Math.hypot(dx, dy) || 1;
-    return { nx: dy / len, ny: -dx / len };
-  };
+  // Recompute normals for the new points by mitering against their new
+  // neighbors, using the library's own segmentNormal() — the same function
+  // openPolylineBoundary() uses internally — instead of reimplementing it.
   const n = result.length;
   for (let i = insertAfterIndex; i < insertAfterIndex + inserted.length; i++) {
     const prev = result[(i - 1 + n) % n];
@@ -135,7 +132,7 @@ const notch = [
   { x: 67, y: 79 },
   { x: 77.5, y: 60 },
 ];
-const spliced = spliceNotch(bubble, 30, notch); // index chosen to land on the bottom edge
+const spliced = spliceNotch(bubble, 60, notch); // index 60 sits on the bottom edge, closest sample to the notch's x-range
 
 const ribbon = generateWobbleRibbon(spliced, { seed: 4, halfWidth: 0.75, widthVariance: 0.5 });
 ```

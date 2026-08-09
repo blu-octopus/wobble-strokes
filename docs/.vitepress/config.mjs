@@ -21,7 +21,7 @@ export default defineConfig({
       {
         text: 'Links',
         items: [
-          { text: 'GitHub', link: 'https://github.com/your-username/wobble' },
+          { text: 'GitHub', link: 'https://github.com/blu-octopus/wobble-strokes' },
           { text: 'npm', link: 'https://www.npmjs.com/package/wobble-svg' },
         ],
       },
@@ -39,15 +39,15 @@ export default defineConfig({
       },
     ],
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/your-username/wobble' },
+      { icon: 'github', link: 'https://github.com/blu-octopus/wobble-strokes' },
       { icon: 'npm', link: 'https://www.npmjs.com/package/wobble-svg' },
     ],
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright ? 2025 Your Name',
+      copyright: 'Copyright © 2025 blu-octopus',
     },
     editLink: {
-      pattern: 'https://github.com/your-username/wobble/edit/main/docs/:path',
+      pattern: 'https://github.com/blu-octopus/wobble-strokes/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
   },

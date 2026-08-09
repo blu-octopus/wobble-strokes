@@ -14,8 +14,15 @@ export interface WobbleOptions {
   halfWidth: number;
   /** How much the width itself varies, as a fraction of halfWidth (0 = constant width). */
   widthVariance?: number;
-  /** Whether the input boundary is a closed loop (a rect/pill) or an open run (e.g. a tail's two edges). */
-  closed?: boolean;
+  /**
+   * Whether the input boundary is a closed loop (a rect/pill) or an open run
+   * (e.g. a tail's two edges). Required, not inferred — a plain
+   * `BoundarySample[]` looks the same either way, so getting this wrong for
+   * a hand-built open boundary silently closes it into a loop instead of
+   * erroring. Defaults to `true` at runtime for plain-JS callers, but
+   * TypeScript callers must state it explicitly.
+   */
+  closed: boolean;
 }
 
 export interface WobbleRibbon {
@@ -66,6 +73,10 @@ export function generateWobbleRibbon(boundary: BoundarySample[], options: Wobble
     widthVariance = 0.5,
     closed = true,
   } = options;
+
+  if (!Number.isFinite(halfWidth)) {
+    throw new Error('generateWobbleRibbon: options.halfWidth is required and must be a finite number');
+  }
 
   const jitterNoise = smoothNoise1D(seed, frequency);
   const widthNoise = smoothNoise1D(seed + 1013, frequency * 1.7);

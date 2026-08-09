@@ -9,6 +9,7 @@ build/
 .next/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+site/vendor/
 
 # Environment
 .env

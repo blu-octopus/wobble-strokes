@@ -2,6 +2,7 @@ export { mulberry32, smoothNoise1D } from './noise';
 export {
   roundedRectBoundary,
   openPolylineBoundary,
+  segmentNormal,
   toClosedPath,
   toOpenPath,
   toRibbonPath,

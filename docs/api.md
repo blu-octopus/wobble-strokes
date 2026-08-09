@@ -124,6 +124,8 @@ Passing `radius >= min(width, height) / 2` produces a full stadium/pill shape (t
 ### Example
 
 ```javascript
+import { roundedRectBoundary } from 'wobble-svg';
+
 const boundary = roundedRectBoundary(200, 100, 15);
 ```
 
