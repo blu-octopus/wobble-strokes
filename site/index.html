@@ -3,132 +3,146 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>wobble — variable-width hand-drawn SVG paths</title>
+    <title>wobble - variable-width hand-drawn SVG paths</title>
     <meta
       name="description"
       content="A tiny library of hand-drawn SVG paths for the web and React Native. Variable-width, seeded, and deterministic."
     />
+    <link rel="icon" href="favicons/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicons/favicon-32.svg" sizes="32x32" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="favicons/apple-touch-icon.svg" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&family=M+PLUS+Rounded+1c:wght@400;700&family=Newsreader:ital@1&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <header class="site-header">
-      <div class="wordmark"><span class="dot"></span>wobble</div>
-      <nav class="site-nav">
-        <a href="https://wobble-svg.vercel.app/getting-started">Docs</a>
-        <a
-          class="icon-link"
-          href="https://github.com/blu-octopus/wobble-strokes"
-          aria-label="GitHub"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <svg viewBox="0 0 16 16" fill="currentColor">
-            <path
-              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
-            />
-          </svg>
-        </a>
-        <button class="install-chip" id="install-chip">
-          <span class="chip-label">npm install wobble-svg</span>
-          <span class="chip-icon">⧉</span>
-        </button>
-      </nav>
-    </header>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <filter id="wobble-text-filter" x="-12%" y="-35%" width="124%" height="170%">
+          <feTurbulence
+            id="wobble-text-noise"
+            type="fractalNoise"
+            baseFrequency="0.045"
+            numOctaves="2"
+            seed="3"
+            result="noise"
+          />
+          <feDisplacementMap
+            id="wobble-text-displace"
+            in="SourceGraphic"
+            in2="noise"
+            scale="2.2"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </defs>
+    </svg>
 
-    <section class="hero">
-      <h1>Borders drawn like<br />someone <em>meant</em> it.</h1>
-      <p class="tagline">
-        A tiny library of hand-drawn SVG paths for the web and React Native. Variable-width
-        strokes, seeded and deterministic, with nothing to configure but the wobble itself.
-        Every border on this page is generated live by the real package.
-      </p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" id="btn-primary" href="https://wobble-svg.vercel.app/getting-started"
-          ><span class="btn-label">Get started</span></a
-        >
-        <a class="btn btn-secondary" id="btn-secondary" href="https://github.com/blu-octopus/wobble-strokes"
-          target="_blank" rel="noreferrer">
-          <span class="btn-label">
-            <svg viewBox="0 0 16 16" fill="currentColor">
-              <path
-                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
-              />
-            </svg>
-            GitHub
-          </span>
+    <!-- Section 1: single-viewport value pitch (split: copy | live studio) -->
+    <header class="fold" id="top">
+      <div class="fold-bar">
+        <a class="wordmark" id="wordmark" href="#top" aria-label="wobble home">
+          <span class="wordmark-label">wobble</span>
         </a>
+        <nav class="fold-nav">
+          <a
+            class="nav-quiet"
+            href="https://github.com/blu-octopus/wobble-strokes/tree/main/docs"
+            >Docs</a
+          >
+          <a
+            class="nav-quiet"
+            href="https://github.com/blu-octopus/wobble-strokes"
+            target="_blank"
+            rel="noreferrer"
+            >GitHub</a
+          >
+        </nav>
       </div>
-      <div class="badges">
-        <span class="badge">Zero dependencies</span>
-        <span class="badge">Deterministic</span>
-        <span class="badge">Web + React Native</span>
-      </div>
-    </section>
 
-    <section class="studio-section" id="studio">
-      <div class="studio-head">
-        <span class="studio-title">Studio</span>
-        <span class="studio-version">v0.1.0</span>
-      </div>
-      <div class="studio">
-        <div class="pane pane-shapes" data-wobble-panel>
-          <div class="pane-head">
-            <span class="pane-title">Shapes</span>
-            <span class="pane-note">4</span>
+      <div class="fold-grid">
+        <div class="pitch">
+          <p class="eyebrow">
+            <a href="https://www.npmjs.com/package/wobble-svg">wobble-svg</a> v0.1.0
+          </p>
+          <h1>Hand-drawn SVG paths. Variable width. Seeded.</h1>
+          <p class="lede">
+            Generate portable ribbon paths for the web and React Native. Nothing to configure but
+            the wobble itself - every border on this page is live from the package.
+          </p>
+          <div class="pitch-cta">
+            <button class="btn btn-primary btn-interactive" id="btn-primary" type="button">
+              <span class="btn-label">npm install wobble-svg</span>
+            </button>
+            <a
+              class="btn btn-secondary btn-interactive"
+              id="btn-secondary"
+              href="https://www.npmjs.com/package/wobble-svg"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="btn-label">View on npm</span>
+            </a>
           </div>
-          <div class="pane-body">
-            <ul class="shape-list">
-              <li class="shape-item active" data-shape="rect">
-                <span class="dot" style="--dot: #c1502e"></span>Rounded Rect
-              </li>
-              <li class="shape-item" data-shape="pill">
-                <span class="dot" style="--dot: #3f7d5c"></span>Pill
-              </li>
-              <li class="shape-item" data-shape="circle">
-                <span class="dot" style="--dot: #3a6ea5"></span>Circle
-              </li>
-              <li class="shape-item" data-shape="tail">
-                <span class="dot" style="--dot: #a4508c"></span>Triangle Tail
-              </li>
-            </ul>
-          </div>
+          <p class="meta-pill" id="badge-tertiary">
+            Zero deps <span class="sep">&middot;</span> Deterministic
+            <span class="sep">&middot;</span> Web + RN
+          </p>
         </div>
 
-        <div class="pane pane-canvas" data-wobble-panel>
-          <div class="pane-head">
-            <span class="pane-title">Canvas</span>
-            <span class="pane-note" id="canvas-label">rect 220×120 · seed 42</span>
+        <aside class="studio" id="studio" data-wobble-panel aria-label="Interactive studio">
+          <div class="studio-top">
+            <span class="studio-kicker">Live studio</span>
+            <span class="pane-note" id="canvas-label">rect 220x120 | seed 42</span>
           </div>
-          <div class="pane-body">
+
+          <ul class="shape-chips" role="list">
+            <li class="shape-item active" data-shape="rect">Rect</li>
+            <li class="shape-item" data-shape="pill">Pill</li>
+            <li class="shape-item" data-shape="circle">Circle</li>
+            <li class="shape-item" data-shape="tail">Tail</li>
+            <li class="shape-item" data-shape="bubble">Bubble</li>
+            <li class="shape-item" data-shape="font">Font</li>
+          </ul>
+
+          <div class="studio-canvas">
             <svg id="canvas-svg" viewBox="0 0 320 200">
               <path id="canvas-fill" />
               <path id="canvas-stroke" fill-rule="evenodd" />
             </svg>
+            <div id="canvas-font" class="canvas-font" hidden>
+              <p id="canvas-font-text" class="canvas-font-text">wobble</p>
+            </div>
           </div>
-        </div>
 
-        <div class="pane pane-inspector" data-wobble-panel>
-          <div class="pane-head">
-            <span class="pane-title">Inspector</span>
-          </div>
-          <div class="pane-body">
+          <div class="studio-controls">
+            <label class="control" id="ctl-font-wrap" hidden>
+              <span>Font</span>
+              <select id="ctl-font">
+                <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded</option>
+                <option value="'Fraunces', serif">Fraunces</option>
+                <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
+                <option value="'Inter', sans-serif">Inter</option>
+                <option value="Georgia, serif">Georgia</option>
+              </select>
+            </label>
+
             <label class="control">
               <div class="control-row">
                 <span>Seed</span>
                 <span class="readout" data-readout-for="ctl-seed"></span>
               </div>
-              <div style="display: flex; gap: 8px; align-items: center">
+              <div class="seed-row">
                 <input type="range" id="ctl-seed" min="1" max="500" step="1" value="42" />
-                <button class="mini-btn" id="ctl-randomize" title="Randomize seed">🎲</button>
+                <button class="mini-btn btn-interactive" id="ctl-randomize" type="button" title="Randomize seed">
+                  rand
+                </button>
               </div>
-            </label>
-
-            <label class="control">
-              <div class="control-row">
-                <span>Frequency</span>
-                <span class="readout" data-readout-for="ctl-frequency"></span>
-              </div>
-              <input type="range" id="ctl-frequency" min="0.01" max="0.2" step="0.005" value="0.05" />
             </label>
 
             <label class="control">
@@ -141,50 +155,98 @@
 
             <label class="control">
               <div class="control-row">
-                <span>Smoothen</span>
-                <span class="readout" data-readout-for="ctl-smoothen"></span>
+                <span>Frequency</span>
+                <span class="readout" data-readout-for="ctl-frequency"></span>
               </div>
-              <input type="range" id="ctl-smoothen" min="0" max="1" step="0.02" value="0.5" />
+              <input type="range" id="ctl-frequency" min="0.01" max="0.25" step="0.005" value="0.05" />
             </label>
 
-            <label class="control">
-              <div class="control-row">
-                <span>Width variance</span>
-                <span class="readout" data-readout-for="ctl-variance"></span>
-              </div>
-              <input type="range" id="ctl-variance" min="0" max="1" step="0.02" value="0.5" />
-            </label>
-
-            <label class="control">
-              <div class="control-row">
-                <span>Stroke width</span>
-                <span class="readout" data-readout-for="ctl-strokewidth"></span>
-              </div>
-              <input type="range" id="ctl-strokewidth" min="0.5" max="4" step="0.1" value="1.5" />
-            </label>
+            <!-- Hidden advanced knobs kept for API parity / snippets -->
+            <input type="hidden" id="ctl-smoothen" value="0.5" />
+            <input type="hidden" id="ctl-variance" value="0.5" />
+            <input type="hidden" id="ctl-strokewidth" value="1.5" />
 
             <label class="control">
               <span>Color</span>
-              <input type="color" id="ctl-color" value="#2b2420" />
+              <div class="color-row">
+                <input type="color" id="ctl-color" value="#2b2420" />
+                <input type="range" id="ctl-alpha" min="0" max="1" step="0.01" value="1" title="Alpha" />
+                <span class="readout" id="ctl-alpha-readout">100%</span>
+              </div>
             </label>
 
-            <label class="control toggle-row">
-              <span>Fill silhouette</span>
+            <label class="control toggle-row path-only">
+              <span>Solid fill</span>
               <input type="checkbox" id="ctl-fill" />
             </label>
 
-            <button class="btn small" id="ctl-copy">Copy code</button>
+            <button class="btn small btn-interactive" id="ctl-copy" type="button">
+              <span class="btn-label">Copy code</span>
+            </button>
           </div>
-        </div>
+        </aside>
       </div>
+    </header>
+
+    <!-- Section 2: social proof -->
+    <section class="proof" id="proof">
+      <div class="proof-copy">
+        <h2>Already drawing production UIs</h2>
+        <p>
+          Built as the stroke engine for
+          <a href="https://blu-octopus.github.io/capy-ui/" target="_blank" rel="noreferrer">capy-ui</a>
+          and
+          <a href="https://github.com/blu-octopus/capy-timer" target="_blank" rel="noreferrer">capy-timer</a>
+          - buttons, dialogue bubbles, and outlines from one ribbon pass.
+        </p>
+      </div>
+      <figure class="proof-shot" data-wobble-panel>
+        <img
+          src="assets/about-capy-ui.png"
+          alt="capy-ui using wobble borders and a dialogue bubble"
+          width="720"
+          height="420"
+        />
+      </figure>
     </section>
 
-    <footer class="site-footer">
-      <span
-        >MIT licensed. <a href="https://github.com/blu-octopus/wobble-strokes">Source on GitHub</a>. Every shape on
-        this page was drawn by <code>wobble-svg@0.1.0</code>, not by hand.</span
-      >
-    </footer>
+    <!-- Section 3: three benefits -->
+    <section class="benefits" id="why">
+      <article class="benefit" data-wobble-panel>
+        <h3>Variable width</h3>
+        <p>True ribbon fills like Figma Dynamic Stroke - not a constant SVG stroke.</p>
+      </article>
+      <article class="benefit" data-wobble-panel>
+        <h3>Deterministic</h3>
+        <p>Same seed, same path. Design systems and tests stay reproducible.</p>
+      </article>
+      <article class="benefit" data-wobble-panel>
+        <h3>Goes everywhere</h3>
+        <p>Plain path data. Web, React Native, Canvas, print - zero DOM APIs.</p>
+      </article>
+    </section>
+
+    <!-- Section 4: conversion footer card -->
+    <section class="close" id="install">
+      <div class="close-card" data-wobble-panel>
+        <h2>Ship a hand-drawn edge tonight</h2>
+        <p>Install the package, sample a boundary, fill the ribbon with evenodd.</p>
+        <button class="btn btn-primary btn-interactive" id="install-chip" type="button">
+          <span class="btn-label chip-label">npm install wobble-svg</span>
+        </button>
+        <p class="close-links">
+          <a href="https://www.npmjs.com/package/wobble-svg">npm</a>
+          <span class="sep">&middot;</span>
+          <a href="https://github.com/blu-octopus/wobble-strokes/tree/main/docs">Docs</a>
+          <span class="sep">&middot;</span>
+          <a href="https://github.com/blu-octopus/wobble-strokes">GitHub</a>
+          <span class="sep">&middot;</span>
+          <a href="favicons/">Favicons</a>
+          <span class="sep">&middot;</span>
+          MIT
+        </p>
+      </div>
+    </section>
 
     <script type="module" src="app.js"></script>
   </body>
