@@ -4,25 +4,6 @@ import { attachWobbleBorder, attachWobbleBorders } from './wobble-ui.js';
 const CANVAS_W = 320;
 const CANVAS_H = 200;
 
-// openPolylineBoundary samples only at the given vertices — fine for a
-// library caller with exact control, but a 3-point triangle gives the noise
-// function almost nothing to act on. Interpolate extra points per edge so
-// this demo shows the same wobble density roundedRectBoundary gets for free.
-function densify(points, stepPx = 6) {
-  const out = [points[0]];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1];
-    const b = points[i];
-    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
-    const steps = Math.max(1, Math.round(segLen / stepPx));
-    for (let s = 1; s <= steps; s++) {
-      const t = s / steps;
-      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-    }
-  }
-  return out;
-}
-
 const state = {
   shape: 'rect',
   seed: 42,
@@ -65,12 +46,13 @@ function boundaryFor(shape) {
       };
     }
     case 'tail': {
+      // Sparse control points — openPolylineBoundary densifies edges ~4px.
       const points = [
         { x: 95, y: 30 },
         { x: 150, y: 178 },
         { x: 238, y: 42 },
       ];
-      return { closed: false, label: 'triangle tail (open)', boundary: openPolylineBoundary(densify(points)) };
+      return { closed: false, label: 'triangle tail (open)', boundary: openPolylineBoundary(points) };
     }
     default:
       throw new Error(`unknown shape: ${shape}`);

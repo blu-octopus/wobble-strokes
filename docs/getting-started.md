@@ -83,7 +83,7 @@ Wobble doesn't take a plain `{x, y}[]` array — it takes a `BoundarySample[]`, 
 
 You don't usually construct `BoundarySample[]` by hand — use the helpers:
 - **`roundedRectBoundary(width, height, radius)`** — closed loop (a rect or, if `radius >= min(width, height) / 2`, a full pill/stadium shape)
-- **`openPolylineBoundary(points)`** — an open run through a plain `Point[]`, for shapes that shouldn't close into a loop (like one edge of a tail)
+- **`openPolylineBoundary(points)`** — an open run through a plain `Point[]`, for shapes that shouldn't close into a loop (like one edge of a tail). Sparse vertices are densified along each edge automatically.
 
 ### Options reference
 
