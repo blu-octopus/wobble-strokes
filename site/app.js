@@ -184,7 +184,7 @@ function renderFontCanvas(animProgress) {
   if (animProgress !== undefined) {
     const frame = resolveSeedCycle(animProgress, seedCycleFromBase(state.seed));
     fontNoise.setAttribute('seed', String(Math.round(frame.seed)));
-    canvasLabel.textContent = `font  |  seed ${frame.seed}¡÷${frame.seedTo}`;
+    canvasLabel.textContent = `font  |  seed ${frame.seed}->${frame.seedTo}`;
   } else {
     fontNoise.setAttribute('seed', String(Math.round(state.seed)));
     canvasLabel.textContent = `font  |  seed ${state.seed}`;
@@ -209,7 +209,7 @@ function renderPathCanvas(animProgress) {
       progress: animProgress,
     });
     const frame = resolveSeedCycle(animProgress, seedCycleFromBase(state.seed));
-    displaySeed = `${frame.seed}¡÷${frame.seedTo}`;
+    displaySeed = `${frame.seed}->${frame.seedTo}`;
   } else {
     ribbon = generateWobbleRibbon(boundary, opts);
   }
@@ -459,6 +459,33 @@ starterCopy?.addEventListener('click', async () => {
   }
 });
 
+const AGENT_PROMPT = `Install the npm package wobble-svg (https://www.npmjs.com/package/wobble-svg).
+
+Use it to generate deterministic hand-drawn SVG ribbon paths (variable-width fills, not constant strokes). Prefer:
+- roundedRectBoundary(width, height, radius) for a closed rect boundary
+- generateWobbleRibbon(boundary, { seed, halfWidth, frequency, wiggle, closed }) for fillPath + ribbonPath
+- generateWobblePath / animateWobbleRibbon when a centerline path or seed animation is needed
+
+Drop the returned path d strings into SVG <path> (or react-native-svg). Keep seeds fixed for reproducibility. Zero DOM dependency - path data only.`;
+
+const ctaCopyPrompt = document.getElementById('cta-copy-prompt');
+ctaCopyPrompt?.addEventListener('click', async () => {
+  const label = ctaCopyPrompt.querySelector('.btn-label');
+  const original = label?.textContent || 'Copy a prompt';
+  try {
+    await navigator.clipboard.writeText(AGENT_PROMPT);
+    if (label) label.textContent = 'Copied!';
+    ctaCopyPrompt.classList.add('is-copied');
+    spawnSparks(ctaCopyPrompt);
+    setTimeout(() => {
+      if (label) label.textContent = original;
+      ctaCopyPrompt.classList.remove('is-copied');
+    }, 1400);
+  } catch {
+    /* clipboard unavailable */
+  }
+});
+
 renderCanvas();
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -623,6 +650,51 @@ attachHoverSeedCycle(secondaryBtn, secondary, {
 });
 secondaryBtn.addEventListener('click', () => spawnSparks(secondaryBtn));
 
+const ctaStar = document.getElementById('cta-star');
+const ctaInstall = document.getElementById('cta-install');
+if (ctaStar) {
+  const ctaStarBorder = attachWobbleBorder(ctaStar, {
+    radius: 999,
+    halfWidth: 1.45,
+    seed: 51,
+    color: 'var(--ink)',
+  });
+  attachHoverSeedCycle(ctaStar, ctaStarBorder, {
+    homeSeed: 51,
+    seeds: [51, 62, 74, 88, 51],
+    intervalMs: 160,
+  });
+  ctaStar.addEventListener('click', () => spawnSparks(ctaStar));
+}
+if (ctaInstall) {
+  const ctaInstallBorder = attachWobbleBorder(ctaInstall, {
+    radius: 999,
+    halfWidth: 1.45,
+    seed: 52,
+    color: 'var(--ink)',
+    fill: 'var(--ink)',
+  });
+  attachHoverSeedCycle(ctaInstall, ctaInstallBorder, {
+    homeSeed: 52,
+    seeds: [52, 63, 75, 89, 52],
+    intervalMs: 160,
+  });
+  ctaInstall.addEventListener('click', () => spawnSparks(ctaInstall));
+}
+if (ctaCopyPrompt) {
+  const ctaPromptBorder = attachWobbleBorder(ctaCopyPrompt, {
+    radius: 999,
+    halfWidth: 1.45,
+    seed: 53,
+    color: 'var(--ink)',
+  });
+  attachHoverSeedCycle(ctaCopyPrompt, ctaPromptBorder, {
+    homeSeed: 53,
+    seeds: [53, 64, 76, 90, 53],
+    intervalMs: 160,
+  });
+}
+
 const copyBorder = attachWobbleBorder(copyBtn, {
   radius: 999,
   halfWidth: 1.25,
@@ -632,7 +704,7 @@ const copyBorder = attachWobbleBorder(copyBtn, {
 });
 attachInteractiveButton(copyBtn, copyBorder, { baseSeed: 8 });
 
-// Brand seed pip (filled orange) ¡X no outer stroke around the wordmark.
+// Brand seed pip (filled orange) - no outer stroke around the wordmark.
 const brandSeed = document.getElementById('brand-seed');
 const seedBorder = attachWobbleBorder(brandSeed, {
   radius: 999,

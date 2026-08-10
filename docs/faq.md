@@ -28,7 +28,7 @@ SVG filters (`feTurbulence`, `feDisplacementMap`) create hand-drawn effects on t
 
 ### How is Wobble deterministic?
 
-Wobble uses a seeded pseudo-random number generator (`mulberry32`), and every noise sample is a pure function of `(seed, arc-length position)`. Same `seed` + same boundary + same options → same output, every time.
+Wobble uses a seeded pseudo-random number generator (`mulberry32`), and every noise sample is a pure function of `(seed, arc-length position)`. Same `seed` + same boundary + same options — same output, every time.
 
 ```javascript
 const path1 = generateWobblePath(boundary, { seed: 42, halfWidth: 1 });
@@ -88,7 +88,7 @@ Wobble generates paths at call time in milliseconds — generating a few hundred
 **Optimization tips:**
 - Memoize generated paths (e.g. `useMemo` in React) if the same shape/size/seed renders repeatedly.
 - For very large counts (thousands of shapes), consider Canvas rendering instead of one DOM `<path>` per shape.
-- A WASM build for large-scale generation is on the [roadmap](/roadmap) for v0.2.
+- A WASM build for large-scale generation is on the [roadmap](/roadmap) (planned for the v0.2 line).
 
 ### Can I export paths to other formats (PDF, PNG, etc.)?
 
@@ -163,7 +163,7 @@ Wobble is MIT-licensed open source. No formal commercial support, but community 
 
 ### Where can I see the roadmap?
 
-[Roadmap](/roadmap) has planned features for v0.2, v0.3, and v1.0.
+[Roadmap](/roadmap) tracks the current **v0.2.0** release and planned work for v0.3 and v1.0.
 
 ---
 

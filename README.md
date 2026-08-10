@@ -7,6 +7,13 @@ Variable-width hand-drawn SVG path generator for web and React Native. Determini
 
 **[Live demo & interactive studio →](https://blu-octopus.github.io/wobble-strokes/)**
 
+## What's new in 0.2.0
+
+- Seed morphing via `animateWobbleRibbon` and `seed`/`seedTo`/`mix`
+- Polished landing page with live studio, benefits, and agent prompt CTA
+- Docs/FAQ updates for fill-vs-stroke and React Native usage
+
+
 ## What is Wobble?
 
 Wobble generates pure SVG path data (`d` attribute strings) that render hand-drawn, organically-wobbly outlines with **true variable-width strokes**. Unlike Rough.js, Wobble supports varying stroke widths along a path — like Figma's Dynamic Stroke. Unlike native SVG filters, Wobble generates portable paths that work everywhere: web `<path>` elements, React Native `<Path>`, Canvas, or print.
