@@ -15,6 +15,20 @@
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --page: 1120px;
   --page-gutter: 22px;
+  --section-pad-y: 88px;
+  --section-kicker-gap: 12px;
+  --section-title-gap: 36px;
+  --section-block-gap: 32px;
+
+  /* Shared type scale ¡X same role = same size across sections */
+  --text-kicker: 12px;
+  --text-label: 12px;
+  --text-h2: clamp(1.5rem, 3vw, 2rem);
+  --text-body: 14px;
+  --text-body-lh: 1.55;
+  --text-card-title: 12px;
+  /* Mono reads optically large; slight em shrink so code matches body */
+  --text-code: 0.875em;
 }
 
 /* Shared centered content column for all major page sections */
@@ -32,6 +46,8 @@ html,
 body {
   margin: 0;
   padding: 0;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 html {
@@ -63,7 +79,7 @@ a {
 
 code {
   font-family: var(--mono);
-  font-size: 0.92em;
+  font-size: var(--text-code);
 }
 
 /* ---------- interactions ---------- */
@@ -124,7 +140,7 @@ code {
   justify-content: center;
   gap: 8px;
   padding: 11px 20px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   font-family: inherit;
   text-decoration: none;
@@ -159,8 +175,9 @@ code {
 /* ---------- 1. Fold (viewport) ---------- */
 
 .fold {
-  min-height: 100svh;
-  padding-block: 16px 28px;
+  /* Leave room so section 2 peeks on typical laptop viewports */
+  min-height: 0;
+  padding-block: 16px 48px;
   display: flex;
   flex-direction: column;
 }
@@ -169,7 +186,8 @@ code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .wordmark {
@@ -209,7 +227,8 @@ code {
   z-index: 1;
   display: inline-block;
   padding: 0;
-  /* Solid fill only ¡X no faux outline around the letterforms. */
+  line-height: 28px;
+  /* Solid fill only - no faux outline around the letterforms. */
   -webkit-text-stroke: 0;
   text-stroke: 0;
   paint-order: fill;
@@ -242,29 +261,43 @@ code {
 }
 
 /* Always-on hero phrase; uses its own SVG filter (see #wobble-text-filter-live). */
-.wobble-text-live {
+.wobble-text-live,
+#hero-drawn-by-hand {
   display: inline;
   filter: url(#wobble-text-filter-live);
+  font-weight: 500;
+  font-style: italic;
 }
 
 .fold-grid {
-  flex: 1;
+  flex: 0 1 auto;
   display: grid;
   grid-template-columns: minmax(240px, 0.9fr) minmax(320px, 1.15fr);
-  gap: 28px;
+  gap: 48px;
   align-items: center;
   min-height: 0;
+  width: 100%;
 }
 
 .pitch {
   max-width: 34rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .eyebrow {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
   margin: 0 0 10px;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink-soft);
+  text-align: left;
 }
 
 .eyebrow a {
@@ -280,6 +313,8 @@ code {
   font-size: clamp(1.75rem, 4vw, 2.75rem);
   line-height: 1.12;
   margin-bottom: 14px;
+  text-align: left;
+  text-wrap: wrap;
 }
 
 .hero-any {
@@ -290,19 +325,21 @@ code {
 }
 
 .lede {
-  margin: 0 0 22px;
+  margin: 0 0 28px;
   color: var(--ink-soft);
   font-size: 15.5px;
   line-height: 1.55;
   max-width: 36ch;
+  text-align: left;
 }
 
 .pitch-cta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 18px;
+  justify-content: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .pitch-secondary {
@@ -316,18 +353,9 @@ code {
   color: var(--ink);
 }
 
-.meta-pill {
-  position: relative;
-  display: inline-block;
-  margin: 0;
-  padding: 0;
-  font-size: 11.5px;
-  color: var(--ink-soft);
-}
-
-.meta-pill .sep {
-  opacity: 0.45;
-  margin: 0 2px;
+.pitch .library-strip {
+  margin-top: 0;
+  justify-content: flex-start;
 }
 
 /* Studio as product preview */
@@ -336,12 +364,13 @@ code {
   position: relative;
   background: var(--panel);
   border-radius: var(--radius-lg);
-  padding: 36px 36px 36px 36px;
+  padding: 22px 24px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
-  max-height: calc(100svh - 96px);
+  /* Cap height so hero + section-2 peek fit in ~900px laptop viewports */
+  max-height: min(520px, calc(100svh - 160px));
 }
 
 .studio-top {
@@ -412,8 +441,9 @@ code {
 .studio-canvas {
   position: relative;
   z-index: 1;
-  flex: 1;
-  min-height: 160px;
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: 180px;
   border-radius: var(--radius-md);
   background-image:
     linear-gradient(var(--line-faint) 1px, transparent 1px),
@@ -428,7 +458,7 @@ code {
 #canvas-svg {
   width: 100%;
   height: 100%;
-  max-height: 220px;
+  max-height: 180px;
 }
 
 .canvas-font {
@@ -552,7 +582,7 @@ code {
 /* ---------- 2. Proof ---------- */
 
 .proof {
-  padding-block: 72px;
+  padding-block: var(--section-pad-y);
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   gap: 40px 48px;
@@ -562,45 +592,51 @@ code {
 .proof-copy {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0;
   min-width: 0;
+  text-align: left;
 }
 
 .proof h2 {
-  font-size: clamp(1.45rem, 2.6vw, 1.9rem);
-  margin: 0 0 22px;
-  max-width: 16ch;
+  margin: 0 0 var(--section-title-gap);
+  max-width: 18ch;
 }
 
 .proof-block {
   max-width: 42ch;
+  width: 100%;
 }
 
 .proof-block + .proof-block {
-  margin-top: 22px;
-  padding-top: 22px;
-  border-top: 1px solid var(--line-faint);
+  margin-top: var(--section-block-gap);
 }
 
 .proof-label {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--text-label);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
+  line-height: 1.3;
 }
 
-.proof-copy p {
+.proof-copy p,
+.proof-copy .use-case-list li {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 14.5px;
-  line-height: 1.55;
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
+}
+
+.proof-copy .use-case-list li {
+  white-space: nowrap;
 }
 
 .proof-copy code {
-  font-size: 0.88em;
+  font-size: var(--text-code);
   color: var(--ink);
 }
 
@@ -611,10 +647,20 @@ code {
 .library-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   list-style: none;
-  margin: 14px 0 0;
+  margin: 0;
   padding: 0;
+  font-size: 12px;
+}
+
+.proof-block .library-strip {
+  margin-top: 16px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .library-pill {
@@ -626,10 +672,22 @@ code {
   border-radius: 999px;
   background: var(--panel);
   color: var(--ink);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
+}
+
+.proof-block .library-pill {
+  flex: 0 1 auto;
+  gap: 4px;
+  padding: 5px 8px 5px 6px;
+  font-size: 12px;
+}
+
+.proof-block .library-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .library-icon {
@@ -642,15 +700,35 @@ code {
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+}
+
+.proof-copy .use-case-list {
+  display: grid;
+  width: max-content;
+  max-width: 100%;
+  text-align: left;
+  justify-items: start;
+}
+
+.proof-block:has(.use-case-list) {
+  max-width: 52ch;
 }
 
 .use-case-list li {
   position: relative;
   padding-left: 1.05em;
   color: var(--ink-soft);
-  font-size: 14.5px;
-  line-height: 1.45;
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
+}
+
+.use-case-list .copy-accent {
+  color: var(--brand);
+}
+
+.use-case-list code {
+  font-size: var(--text-code);
 }
 
 .use-case-list li::before {
@@ -667,13 +745,14 @@ code {
 .proof-shot {
   position: relative;
   margin: 0;
+  margin-inline: auto;
   border-radius: var(--radius-lg);
   overflow: visible;
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  justify-self: end;
+  justify-self: center;
   width: fit-content;
   max-height: 100%;
   padding: 10px;
@@ -694,11 +773,13 @@ code {
 /* ---------- 3. Benefits ---------- */
 
 .benefits {
-  padding-block: 8px 80px;
+  padding-block: var(--section-pad-y);
+  /* Tighter top so a hero peek reveals the section kicker, not empty pad */
+  padding-top: 56px;
 }
 
 .benefits-intro {
-  margin-bottom: 28px;
+  margin-bottom: var(--section-title-gap);
   max-width: 36rem;
 }
 
@@ -709,7 +790,7 @@ code {
 .benefits-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 32px;
+  gap: 28px;
 }
 
 .benefit {
@@ -727,9 +808,9 @@ code {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 132px;
+  min-height: 140px;
   margin: 3px 3px 0;
-  padding: 16px 14px 10px;
+  padding: 20px 16px 14px;
   background: color-mix(in oklch, var(--paper) 72%, var(--brand) 6%);
   border-radius: calc(var(--radius-lg) - 4px) calc(var(--radius-lg) - 4px) 8px 8px;
 }
@@ -744,62 +825,82 @@ code {
 .benefit-copy {
   position: relative;
   z-index: 1;
-  padding: 18px 18px 20px;
+  padding: 22px 22px 24px;
 }
 
 .benefit h3 {
-  font-size: 1.15rem;
+  font-family: var(--font-display);
+  font-size: var(--text-card-title);
+  font-weight: 700;
   margin-bottom: 8px;
 }
 
 .benefit p {
   margin: 0;
-  font-size: 13.5px;
-  line-height: 1.45;
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
   color: var(--ink-soft);
 }
 
 /* ---------- 4. Get started / copy prompts ---------- */
 
 .close {
-  padding-block: 0 72px;
+  padding-block: var(--section-pad-y);
 }
 
 .section-kicker {
-  margin: 0 0 8px;
-  font-size: 12px;
+  margin: 0 0 var(--section-kicker-gap);
+  font-family: var(--font-body);
+  font-size: var(--text-kicker);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--brand);
+  line-height: 1.3;
+}
+
+/* Beat .proof-copy p so Compatibility kicker matches Why / Get started */
+.proof-copy .section-kicker {
+  margin: 0 0 var(--section-kicker-gap);
+  font-size: var(--text-kicker);
+  color: var(--brand);
+  line-height: 1.3;
 }
 
 .close-title {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  margin-bottom: 28px;
+  font-size: var(--text-h2);
+  margin-bottom: var(--section-title-gap);
 }
 
 .get-started {
   display: grid;
   grid-template-columns: minmax(240px, 0.9fr) minmax(280px, 1.15fr);
-  gap: 28px;
+  gap: 32px;
   align-items: start;
 }
 
-.get-started-copy h3 {
-  font-size: 1.05rem;
-  margin: 0 0 10px;
+.get-started-copy h3.proof-label {
+  margin: 0 0 12px;
 }
 
-.get-started-copy h3:not(:first-child) {
-  margin-top: 26px;
+.get-started-copy h3.proof-label:not(:first-child) {
+  margin-top: var(--section-block-gap);
+}
+
+.get-started-copy p,
+.get-started-copy .use-case-list li {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-body);
+  line-height: var(--text-body-lh);
 }
 
 .get-started-copy p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 14px;
   max-width: 42ch;
+}
+
+.get-started-copy .use-case-list {
+  margin-top: 12px;
 }
 
 .copy-prompt {
@@ -870,8 +971,7 @@ code {
 }
 
 .copy-hint {
-  margin: 0 0 4px !important;
-  font-size: 12.5px !important;
+  margin: 12px 0 0;
 }
 
 .code-card {
@@ -941,7 +1041,56 @@ code {
 
 .get-started-copy code {
   color: var(--brand);
-  font-size: 0.92em;
+  font-size: var(--text-code);
+}
+
+.get-started-copy .copy-prompt-code {
+  font-size: 13.5px;
+}
+
+/* ---------- 5. Final CTA ---------- */
+
+.final-cta {
+  padding-block: 0 var(--section-pad-y);
+}
+
+.final-cta-card {
+  position: relative;
+  padding: clamp(28px, 4vw, 40px) clamp(22px, 4vw, 36px);
+  background: var(--panel);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.final-cta-card .section-kicker {
+  margin-bottom: 10px;
+}
+
+.final-cta-card .close-title {
+  margin: 0 auto 12px;
+  max-width: 18ch;
+}
+
+.final-cta-lede {
+  margin: 0 auto 24px;
+  max-width: 42ch;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: var(--text-body-lh);
+}
+
+.final-cta-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 14px;
+}
+
+.final-cta-actions .btn {
+  background: color-mix(in oklch, var(--paper) 70%, var(--brand) 4%);
 }
 
 .site-footer {
@@ -979,46 +1128,375 @@ code {
 /* ---------- responsive ---------- */
 
 @media (max-width: 900px) {
+  :root {
+    --section-pad-y: 112px;
+    --section-title-gap: 28px;
+    --section-block-gap: 36px;
+    --page-gutter: 20px;
+    --text-h2: 1.75rem;
+  }
+
   .fold {
     min-height: auto;
+    padding-block: 16px 56px;
+    overflow-x: clip;
+  }
+
+  .fold-bar {
+    margin-bottom: 28px;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .wordmark {
+    font-size: 20px;
+    padding: 6px 12px 10px 12px;
+    min-width: 0;
+    flex-shrink: 1;
+    max-width: calc(100% - 9.5rem);
+  }
+
+  .wordmark-label {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    line-height: 28px;
+  }
+
+  .fold-nav {
+    gap: 8px;
+    font-size: 12px;
+    flex-shrink: 0;
   }
 
   .fold-grid,
   .proof,
   .benefits-grid,
   .get-started {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fold-grid {
+    /* Stacked pitch ¡÷ studio: tight enough to peek the next block */
+    gap: 56px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .pitch,
+  .studio {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pitch {
+    max-width: none;
+    width: 100%;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    align-items: center;
+  }
+
+  .eyebrow {
+    margin-bottom: 16px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .pitch h1 {
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+    font-size: clamp(2.25rem, 8.8vw, 3.05rem);
+    line-height: 1.06;
+    margin-bottom: 16px;
+    overflow-wrap: break-word;
+  }
+
+  .lede {
+    margin-bottom: 48px;
+    padding-bottom: 0;
+    max-width: none;
+    width: 100%;
+    overflow-wrap: break-word;
+    text-align: center;
+  }
+
+  .btn {
+    padding-block: 15px;
+    padding-inline: 20px;
+  }
+
+  .pitch-cta {
+    width: 100%;
+    margin-bottom: 16px;
+    max-width: 100%;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #btn-primary {
+    width: 100%;
+  }
+
+  .pitch .library-strip {
+    max-width: 100%;
+    justify-content: center;
   }
 
   .proof {
-    gap: 32px;
+    gap: 48px;
+  }
+
+  .proof-copy {
+    align-items: flex-start;
+    text-align: left;
+    min-width: 0;
   }
 
   .proof h2 {
     max-width: none;
   }
 
+  .proof-copy .use-case-list {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .proof-copy .use-case-list li {
+    white-space: normal;
+  }
+
+  .code-card,
+  .get-started-copy,
+  .get-started {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .code-card-body code {
+    white-space: pre;
+  }
+
+  .proof-block .library-strip {
+    gap: 5px;
+  }
+
+  .proof-block .library-pill {
+    padding: 4px 7px 4px 5px;
+    font-size: 12px;
+  }
+
   .proof-shot {
     justify-self: center;
   }
 
-  .studio {
-    max-height: none;
+  .benefits-grid {
+    gap: 36px;
   }
 
-  .studio-controls {
-    grid-template-columns: 1fr;
+  .get-started {
+    gap: 44px;
   }
-}
 
-@media (max-width: 480px) {
-  .pitch-cta {
+  .final-cta-actions {
     flex-direction: column;
     align-items: stretch;
   }
 
+  .final-cta-actions .btn {
+    width: 100%;
+  }
+
+  .studio {
+    max-height: none;
+    padding: 22px 18px;
+    width: 100%;
+  }
+
+  .studio-top {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .pane-note {
+    overflow-wrap: anywhere;
+  }
+
+  .shape-chips {
+    max-width: 100%;
+  }
+
+  .studio-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-footer {
+    padding-block: 40px 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --section-pad-y: 96px;
+    --page-gutter: 16px;
+  }
+
+  .fold {
+    padding-block: 14px 48px;
+  }
+
+  .fold-bar {
+    margin-bottom: 20px;
+    gap: 8px;
+  }
+
+  .wordmark {
+    font-size: 18px;
+    padding: 4px 8px 6px 8px;
+    max-width: calc(100% - 8.75rem);
+  }
+
+  .wordmark-label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    max-width: none;
+    line-height: 28px;
+  }
+
+  .fold-nav {
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .fold-grid {
+    gap: 48px;
+  }
+
+  .pitch {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .eyebrow {
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .pitch h1 {
+    font-size: clamp(2.15rem, 10.2vw, 2.75rem);
+    line-height: 1.05;
+    margin-bottom: 16px;
+  }
+
+  .lede {
+    margin-bottom: 48px;
+  }
+
   .btn {
     width: 100%;
+    padding-block: 16px;
+  }
+
+  #btn-primary {
+    width: 100%;
+  }
+
+  .pitch-cta {
+    width: 100%;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .pitch .library-strip {
+    gap: 8px;
+  }
+
+  .studio {
+    padding: 18px 14px;
+  }
+
+  .shape-chips {
+    gap: 6px 5px;
+  }
+
+  .shape-item {
+    padding: 5px 9px;
+  }
+
+  .proof-block .library-strip {
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .proof-block .library-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .proof-block .library-pill {
+    padding: 4px 6px 4px 5px;
+    font-size: 12px;
+  }
+}
+
+/* Desktop hero: always left-aligned (mobile centering stays in max-width queries above) */
+@media (min-width: 901px) {
+  .fold {
+    /* ~100¡V140px peek of section 2 on common laptop heights */
+    padding-block: 12px 40px;
+  }
+
+  .fold-grid {
+    align-items: center;
+    gap: 48px;
+  }
+
+  .pitch {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .pitch .eyebrow {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .pitch h1 {
+    text-align: left;
+    text-wrap: wrap;
+  }
+
+  .pitch .lede {
+    text-align: left;
+  }
+
+  .pitch-cta {
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-direction: row;
+    width: auto;
+  }
+
+  .pitch .library-strip {
+    justify-content: flex-start;
+  }
+
+  #btn-primary {
+    width: auto;
+  }
+
+  .studio {
+    max-height: min(500px, calc(100svh - 180px));
   }
 }
 
