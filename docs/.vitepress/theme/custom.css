@@ -1,0 +1,98 @@
+:root {
+  --vp-c-bg: #fbfaf9;
+  --vp-c-bg-alt: #f5f2eb;
+  --vp-c-bg-soft: #f0ebe3;
+  --vp-c-bg-mute: #ebe4da;
+  --vp-c-text-1: #1c1917;
+  --vp-c-text-2: #57534e;
+  --vp-c-text-3: #78716c;
+  --vp-c-brand-1: #c1502e;
+  --vp-c-brand-2: #a34428;
+  --vp-c-brand-3: #823d00;
+  --vp-c-brand-soft: rgba(193, 80, 46, 0.12);
+  --vp-c-divider: rgba(28, 25, 23, 0.08);
+  --vp-c-gutter: rgba(28, 25, 23, 0.06);
+  --vp-c-border: rgba(28, 25, 23, 0.1);
+  --vp-font-family-base: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --vp-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --vp-code-block-bg: #ffffff;
+  --vp-code-copy-bg: transparent;
+  --vp-sidebar-bg-color: #fbfaf9;
+  --vp-nav-bg-color: rgba(251, 250, 249, 0.86);
+}
+
+.dark {
+  --vp-c-bg: #1c1917;
+  --vp-c-bg-alt: #151311;
+  --vp-c-bg-soft: #292524;
+  --vp-c-bg-mute: #292524;
+  --vp-c-text-1: #f5f2eb;
+  --vp-c-text-2: #d6d3d1;
+  --vp-c-text-3: #a8a29e;
+  --vp-c-brand-1: #e07a55;
+  --vp-c-brand-2: #c1502e;
+  --vp-c-brand-3: #a34428;
+  --vp-c-brand-soft: rgba(224, 122, 85, 0.16);
+  --vp-code-block-bg: #151311;
+  --vp-sidebar-bg-color: #1c1917;
+  --vp-nav-bg-color: rgba(28, 25, 23, 0.86);
+}
+
+.VPDoc h1 {
+  letter-spacing: -0.03em;
+}
+
+.VPDoc h2 {
+  border-top: none;
+  margin-top: 2.4rem;
+  letter-spacing: -0.02em;
+}
+
+.VPDoc p,
+.VPDoc li {
+  line-height: 1.65;
+}
+
+/* Cuelume-like copyable code cards */
+.vp-code-group .tabs,
+div[class*='language-'] {
+  border: 1px solid var(--vp-c-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+div[class*='language-'] {
+  background: var(--vp-code-block-bg) !important;
+}
+
+div[class*='language-'] > span.lang {
+  color: var(--vp-c-text-3);
+  font-size: 12px;
+}
+
+div[class*='language-'] button.copy {
+  border-radius: 8px;
+}
+
+.VPSidebarItem.level-0 .text {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-3);
+  font-weight: 600;
+}
+
+.VPSidebarItem.is-active > .item .link {
+  background: #fff;
+  border-radius: 10px;
+}
+
+.dark .VPSidebarItem.is-active > .item .link {
+  background: var(--vp-c-bg-soft);
+}
+
+.VPNavBarTitle .title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}

@@ -2,18 +2,24 @@ import {
   roundedRectBoundary,
   openPolylineBoundary,
   generateWobbleRibbon,
+  animateWobbleRibbon,
+  resolveSeedCycle,
 } from './vendor/wobble-svg.mjs';
 import {
   attachWobbleBorder,
   attachWobbleBorders,
   attachInteractiveButton,
   attachHoverSeedCycle,
+  attachContinuousSeedCycle,
+  attachHoverTextWobble,
+  attachContinuousTextWobble,
   buildDialogueBubbleBoundary,
   spawnSparks,
 } from './wobble-ui.js';
 
 const CANVAS_W = 320;
 const CANVAS_H = 200;
+const ANIMATE_INTERVAL_MS = 220;
 
 const state = {
   shape: 'rect',
@@ -27,6 +33,7 @@ const state = {
   alpha: 1,
   fill: false,
   fontFamily: "'M PLUS Rounded 1c', sans-serif",
+  animate: false,
 };
 
 function rgbaFrom(hex, alpha) {
@@ -125,49 +132,33 @@ function setPathControlsVisible(visible) {
   });
 }
 
-function renderFontCanvas() {
-  canvasSvg.style.visibility = 'hidden';
-  canvasFont.hidden = false;
-  fontWrap.hidden = false;
-  setPathControlsVisible(false);
-
-  canvasFontText.style.fontFamily = state.fontFamily;
-  canvasFontText.style.color = colorCss();
-  // Map studio knobs onto the SVG displacement filter (capy-ui Text pattern).
-  fontNoise.setAttribute('seed', String(Math.round(state.seed)));
-  fontNoise.setAttribute('baseFrequency', String(Math.max(0.01, state.frequency)));
-  fontDisplace.setAttribute('scale', String(Math.max(0.4, state.wiggle * 1.6)));
-  canvasLabel.textContent = `font  |  seed ${state.seed}`;
+function seedCycleFromBase(base) {
+  const s = Math.round(base);
+  return [s, s + 11, s + 23, s + 37];
 }
 
-function renderPathCanvas() {
-  canvasSvg.style.visibility = 'visible';
-  canvasFont.hidden = true;
-  fontWrap.hidden = true;
-  setPathControlsVisible(true);
-
-  const { closed, label, boundary } = boundaryFor(state.shape);
-  const ribbon = generateWobbleRibbon(boundary, {
+function ribbonOpts(extra = {}) {
+  return {
     seed: state.seed,
     halfWidth: state.strokeWidth / 2,
     frequency: state.frequency,
     wiggle: state.wiggle,
     smoothen: state.smoothen,
     widthVariance: state.variance,
-    closed,
-  });
+    ...extra,
+  };
+}
 
+function applyRibbonToCanvas(ribbon, closed, label, displaySeed) {
   const color = colorCss();
   canvasStroke.setAttribute('d', ribbon.ribbonPath);
   canvasStroke.setAttribute('fill', color);
 
   if (state.shape === 'bubble') {
-    // Dialogue bubbles always show a paper (or chosen) fill behind the stroke.
     canvasFill.setAttribute('d', ribbon.fillPath);
     canvasFill.setAttribute('fill', state.fill ? color : '#fffdf8');
     canvasFill.style.opacity = '1';
   } else if (state.fill && closed) {
-    // Solid fill silhouette at full opacity of the chosen color (incl. alpha).
     canvasFill.setAttribute('d', ribbon.fillPath);
     canvasFill.setAttribute('fill', color);
     canvasFill.style.opacity = '1';
@@ -175,12 +166,103 @@ function renderPathCanvas() {
     canvasFill.removeAttribute('d');
   }
 
-  canvasLabel.textContent = `${label}  |  seed ${state.seed}`;
+  const seedLabel = displaySeed ?? state.seed;
+  canvasLabel.textContent = `${label}  |  seed ${seedLabel}`;
 }
 
-function renderCanvas() {
-  if (state.shape === 'font') renderFontCanvas();
-  else renderPathCanvas();
+function renderFontCanvas(animProgress) {
+  canvasSvg.style.visibility = 'hidden';
+  canvasFont.hidden = false;
+  fontWrap.hidden = false;
+  setPathControlsVisible(false);
+
+  canvasFontText.style.fontFamily = state.fontFamily;
+  canvasFontText.style.color = colorCss();
+  fontNoise.setAttribute('baseFrequency', String(Math.max(0.01, state.frequency)));
+  fontDisplace.setAttribute('scale', String(Math.max(0.4, state.wiggle * 1.6)));
+
+  if (animProgress !== undefined) {
+    const frame = resolveSeedCycle(animProgress, seedCycleFromBase(state.seed));
+    fontNoise.setAttribute('seed', String(Math.round(frame.seed)));
+    canvasLabel.textContent = `font  |  seed ${frame.seed}¡÷${frame.seedTo}`;
+  } else {
+    fontNoise.setAttribute('seed', String(Math.round(state.seed)));
+    canvasLabel.textContent = `font  |  seed ${state.seed}`;
+  }
+}
+
+function renderPathCanvas(animProgress) {
+  canvasSvg.style.visibility = 'visible';
+  canvasFont.hidden = true;
+  fontWrap.hidden = true;
+  setPathControlsVisible(true);
+
+  const { closed, label, boundary } = boundaryFor(state.shape);
+  const opts = ribbonOpts({ closed });
+
+  let ribbon;
+  let displaySeed;
+  if (animProgress !== undefined) {
+    ribbon = animateWobbleRibbon(boundary, {
+      ...opts,
+      seeds: seedCycleFromBase(state.seed),
+      progress: animProgress,
+    });
+    const frame = resolveSeedCycle(animProgress, seedCycleFromBase(state.seed));
+    displaySeed = `${frame.seed}¡÷${frame.seedTo}`;
+  } else {
+    ribbon = generateWobbleRibbon(boundary, opts);
+  }
+
+  applyRibbonToCanvas(ribbon, closed, label, displaySeed);
+}
+
+function renderCanvas(animProgress) {
+  if (state.shape === 'font') renderFontCanvas(animProgress);
+  else renderPathCanvas(animProgress);
+}
+
+let animateRaf = 0;
+let animateT0 = 0;
+
+function stopSeedAnimation({ freezeSeed = true } = {}) {
+  if (animateRaf) cancelAnimationFrame(animateRaf);
+  animateRaf = 0;
+
+  if (!freezeSeed) return;
+
+  const elapsed = (performance.now() - animateT0) / ANIMATE_INTERVAL_MS;
+  const frame = resolveSeedCycle(elapsed, seedCycleFromBase(state.seed));
+  const frozen = Math.round(frame.mix < 0.5 ? frame.seed : frame.seedTo);
+  state.seed = frozen;
+  const seedInput = document.getElementById('ctl-seed');
+  if (seedInput) {
+    seedInput.value = String(frozen);
+    const readout = document.querySelector('[data-readout-for="ctl-seed"]');
+    if (readout) readout.textContent = String(frozen);
+  }
+}
+
+function tickSeedAnimation(now) {
+  if (!state.animate) return;
+  const progress = (now - animateT0) / ANIMATE_INTERVAL_MS;
+  renderCanvas(progress);
+  animateRaf = requestAnimationFrame(tickSeedAnimation);
+}
+
+function startSeedAnimation() {
+  stopSeedAnimation({ freezeSeed: false });
+  animateT0 = performance.now();
+  animateRaf = requestAnimationFrame(tickSeedAnimation);
+}
+
+function setAnimateEnabled(on) {
+  state.animate = on;
+  if (on) startSeedAnimation();
+  else {
+    stopSeedAnimation({ freezeSeed: true });
+    renderCanvas();
+  }
 }
 
 function buildSnippet() {
@@ -248,7 +330,12 @@ function bindSlider(id, key, format = (v) => v) {
     const value = Number(input.value);
     state[key] = value;
     if (readout) readout.textContent = format(value);
-    renderCanvas();
+    // While animating, seed slider retargets the cycle base; other knobs redraw live.
+    if (state.animate && key === 'seed') {
+      animateT0 = performance.now();
+      return;
+    }
+    if (!state.animate) renderCanvas();
   };
   input.addEventListener('input', update);
   update();
@@ -266,23 +353,27 @@ const alphaReadout = document.getElementById('ctl-alpha-readout');
 alphaInput.addEventListener('input', () => {
   state.alpha = Number(alphaInput.value);
   alphaReadout.textContent = `${Math.round(state.alpha * 100)}%`;
-  renderCanvas();
+  if (!state.animate) renderCanvas();
 });
 alphaReadout.textContent = '100%';
 
 document.getElementById('ctl-color').addEventListener('input', (e) => {
   state.colorHex = e.target.value;
-  renderCanvas();
+  if (!state.animate) renderCanvas();
 });
 
 document.getElementById('ctl-fill').addEventListener('change', (e) => {
   state.fill = e.target.checked;
-  renderCanvas();
+  if (!state.animate) renderCanvas();
 });
 
 document.getElementById('ctl-font').addEventListener('change', (e) => {
   state.fontFamily = e.target.value;
-  renderCanvas();
+  if (!state.animate) renderCanvas();
+});
+
+document.getElementById('ctl-animate').addEventListener('change', (e) => {
+  setAnimateEnabled(e.target.checked);
 });
 
 document.getElementById('ctl-randomize').addEventListener('click', () => {
@@ -333,12 +424,16 @@ copyBtn.addEventListener('click', async () => {
 });
 
 async function copyInstall(btn) {
-  const label = btn.querySelector('.btn-label, .chip-label') || btn;
   try {
     await navigator.clipboard.writeText('npm install wobble-svg');
-    const original = label.textContent;
-    label.textContent = 'Copied!';
-    setTimeout(() => (label.textContent = original), 1400);
+    btn.classList.add('is-copied');
+    const code = btn.querySelector('.copy-prompt-code');
+    const original = code?.innerHTML;
+    if (code) code.textContent = 'Copied!';
+    setTimeout(() => {
+      btn.classList.remove('is-copied');
+      if (code && original) code.innerHTML = original;
+    }, 1400);
   } catch {
     /* clipboard unavailable */
   }
@@ -346,13 +441,138 @@ async function copyInstall(btn) {
 
 const primaryBtn = document.getElementById('btn-primary');
 const installChip = document.getElementById('install-chip');
-installChip.addEventListener('click', () => copyInstall(installChip));
+installChip.addEventListener('click', () => {
+  copyInstall(installChip);
+  spawnSparks(installChip);
+});
+
+const starterCopy = document.getElementById('starter-copy');
+const starterSnippet = document.getElementById('starter-snippet');
+starterCopy?.addEventListener('click', async () => {
+  const text = starterSnippet?.innerText?.trim() || '';
+  try {
+    await navigator.clipboard.writeText(text);
+    starterCopy.setAttribute('aria-label', 'Copied');
+    setTimeout(() => starterCopy.setAttribute('aria-label', 'Copy sample code'), 1400);
+  } catch {
+    /* clipboard unavailable */
+  }
+});
 
 renderCanvas();
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function appendRibbonPath(svg, d, fill) {
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('fill', fill);
+  path.setAttribute('fill-rule', 'evenodd');
+  svg.appendChild(path);
+}
+
+function appendLabel(svg, text, x, y, { fill = 'var(--ink-soft)', size = 10, weight = '600' } = {}) {
+  const el = document.createElementNS(SVG_NS, 'text');
+  el.textContent = text;
+  el.setAttribute('x', String(x));
+  el.setAttribute('y', String(y));
+  el.setAttribute('fill', fill);
+  el.setAttribute('font-size', String(size));
+  el.setAttribute('font-weight', weight);
+  el.setAttribute('text-anchor', 'middle');
+  el.style.fontFamily = 'var(--mono)';
+  svg.appendChild(el);
+}
+
+function paintBenefitDemos() {
+  const widthSvg = document.getElementById('benefit-demo-width');
+  if (widthSvg) {
+    widthSvg.replaceChildren();
+    const points = [
+      { x: 18, y: 58 },
+      { x: 52, y: 28 },
+      { x: 96, y: 78 },
+      { x: 140, y: 34 },
+      { x: 182, y: 62 },
+    ];
+    const ribbon = generateWobbleRibbon(openPolylineBoundary(points), {
+      closed: false,
+      seed: 42,
+      halfWidth: 5.5,
+      frequency: 0.09,
+      wiggle: 1.1,
+      smoothen: 0.45,
+      widthVariance: 0.95,
+    });
+    appendRibbonPath(widthSvg, ribbon.ribbonPath, 'var(--ink)');
+  }
+
+  const seedSvg = document.getElementById('benefit-demo-seed');
+  if (seedSvg) {
+    seedSvg.replaceChildren();
+    const opts = {
+      closed: true,
+      seed: 42,
+      halfWidth: 2.2,
+      frequency: 0.14,
+      wiggle: 1.05,
+      smoothen: 0.5,
+      widthVariance: 0.55,
+    };
+    const left = roundedRectBoundary(54, 54, 14).map((p) => ({ ...p, x: p.x + 28, y: p.y + 22 }));
+    const right = roundedRectBoundary(54, 54, 14).map((p) => ({ ...p, x: p.x + 118, y: p.y + 22 }));
+    appendRibbonPath(seedSvg, generateWobbleRibbon(left, opts).ribbonPath, 'var(--ink)');
+    appendRibbonPath(seedSvg, generateWobbleRibbon(right, opts).ribbonPath, 'var(--ink)');
+    appendLabel(seedSvg, 'seed 42', 55, 102, { fill: 'var(--brand)', size: 11 });
+    appendLabel(seedSvg, 'seed 42', 145, 102, { fill: 'var(--brand)', size: 11 });
+    appendLabel(seedSvg, '=', 100, 55, { fill: 'var(--ink)', size: 18, weight: '700' });
+  }
+
+  const portSvg = document.getElementById('benefit-demo-port');
+  if (portSvg) {
+    portSvg.replaceChildren();
+    const targets = [
+      { x: 16, y: 28, w: 50, h: 40, r: 8, label: 'Web' },
+      { x: 75, y: 22, w: 50, h: 52, r: 12, label: 'RN' },
+      { x: 134, y: 28, w: 50, h: 40, r: 8, label: 'Print' },
+    ];
+    targets.forEach((t, i) => {
+      const boundary = roundedRectBoundary(t.w, t.h, t.r).map((p) => ({
+        ...p,
+        x: p.x + t.x,
+        y: p.y + t.y,
+      }));
+      const ribbon = generateWobbleRibbon(boundary, {
+        closed: true,
+        seed: 18 + i * 9,
+        halfWidth: 1.6,
+        frequency: 0.12,
+        wiggle: 0.9,
+        smoothen: 0.55,
+        widthVariance: 0.45,
+      });
+      appendRibbonPath(portSvg, ribbon.ribbonPath, i === 1 ? 'var(--brand)' : 'var(--ink)');
+      appendLabel(portSvg, t.label, t.x + t.w / 2, 98, {
+        fill: i === 1 ? 'var(--brand)' : 'var(--ink-soft)',
+        size: 11,
+      });
+    });
+  }
+}
+
+paintBenefitDemos();
+
 // Borders + interactions (compact layout)
 attachWobbleBorders('[data-wobble-panel]', { radius: 14, halfWidth: 1.15, seed: 10 });
-attachWobbleBorders('.benefit', { radius: 14, halfWidth: 1.1, seed: 80 });
+const benefitBorders = attachWobbleBorders('.benefit', { radius: 14, halfWidth: 1.1, seed: 80 });
+document.querySelectorAll('.benefit').forEach((el, i) => {
+  const homeSeed = 80 + i;
+  attachHoverSeedCycle(el, benefitBorders[i], {
+    homeSeed,
+    seeds: [homeSeed, homeSeed + 11, homeSeed + 23, homeSeed + 37, homeSeed],
+    intervalMs: 180,
+  });
+});
 
 const shapeBorders = attachWobbleBorders('.shape-item', {
   radius: 999,
@@ -381,7 +601,13 @@ const primary = attachWobbleBorder(primaryBtn, {
   color: 'var(--ink)',
   fill: 'var(--ink)',
 });
-attachInteractiveButton(primaryBtn, primary, { baseSeed: 2 });
+// Continuous seed morph while hovered (not a one-shot reseed).
+attachHoverSeedCycle(primaryBtn, primary, {
+  homeSeed: 2,
+  seeds: [2, 13, 25, 39, 2],
+  intervalMs: 160,
+});
+primaryBtn.addEventListener('click', () => spawnSparks(primaryBtn));
 
 const secondaryBtn = document.getElementById('btn-secondary');
 const secondary = attachWobbleBorder(secondaryBtn, {
@@ -390,16 +616,12 @@ const secondary = attachWobbleBorder(secondaryBtn, {
   seed: 3,
   color: 'var(--ink)',
 });
-attachInteractiveButton(secondaryBtn, secondary, { baseSeed: 3 });
-
-const footerInstall = attachWobbleBorder(installChip, {
-  radius: 999,
-  halfWidth: 1.45,
-  seed: 5,
-  color: 'var(--ink)',
-  fill: 'var(--ink)',
+attachHoverSeedCycle(secondaryBtn, secondary, {
+  homeSeed: 3,
+  seeds: [3, 14, 26, 40, 3],
+  intervalMs: 160,
 });
-attachInteractiveButton(installChip, footerInstall, { baseSeed: 5 });
+secondaryBtn.addEventListener('click', () => spawnSparks(secondaryBtn));
 
 const copyBorder = attachWobbleBorder(copyBtn, {
   radius: 999,
@@ -410,14 +632,7 @@ const copyBorder = attachWobbleBorder(copyBtn, {
 });
 attachInteractiveButton(copyBtn, copyBorder, { baseSeed: 8 });
 
-attachWobbleBorder(document.getElementById('badge-tertiary'), {
-  radius: 999,
-  halfWidth: 0.95,
-  seed: 60,
-  frequency: 0.08,
-});
-
-// Brand seed: orange pip with matching wobble stroke; cycles on wordmark hover.
+// Brand seed pip (filled orange) ¡X no outer stroke around the wordmark.
 const brandSeed = document.getElementById('brand-seed');
 const seedBorder = attachWobbleBorder(brandSeed, {
   radius: 999,
@@ -426,13 +641,57 @@ const seedBorder = attachWobbleBorder(brandSeed, {
   frequency: 0.16,
   wiggle: 1.25,
   widthVariance: 0.65,
-  // Stroke matches the seed fill (same rule as filled CTAs).
-  color: '#c1502e',
-  fill: '#c1502e',
+  color: 'var(--brand)',
+  fill: 'var(--brand)',
 });
+
 const wordmark = document.getElementById('wordmark');
+const wordmarkLabel = document.getElementById('wordmark-label');
 attachHoverSeedCycle(wordmark, seedBorder, {
   homeSeed: 2,
   seeds: [2, 13, 25, 39, 2],
   intervalMs: 160,
+});
+attachHoverTextWobble(wordmarkLabel, {
+  homeSeed: 2,
+  seeds: [2, 13, 25, 39, 2],
+  intervalMs: 150,
+  scale: 2.8,
+});
+
+const studioLiveDot = document.getElementById('studio-live-dot');
+if (studioLiveDot) {
+  const liveDotBorder = attachWobbleBorder(studioLiveDot, {
+    radius: 999,
+    halfWidth: 1.1,
+    seed: 7,
+    frequency: 0.18,
+    wiggle: 1.15,
+    widthVariance: 0.55,
+    color: 'var(--brand)',
+    fill: 'var(--brand)',
+  });
+  attachContinuousSeedCycle(liveDotBorder, {
+    seeds: [7, 18, 29, 41, 7],
+    intervalMs: 450,
+  });
+}
+
+const heroDrawnByHand = document.getElementById('hero-drawn-by-hand');
+if (heroDrawnByHand) {
+  attachContinuousTextWobble(heroDrawnByHand, {
+    seeds: [11, 19, 27, 35, 11],
+    intervalMs: 150,
+    scale: 3.2,
+  });
+}
+
+// Headings / typed labels wobble on hover.
+document.querySelectorAll('.wobble-hover-text').forEach((el, i) => {
+  attachHoverTextWobble(el, {
+    homeSeed: 3 + i,
+    seeds: [3 + i, 11 + i, 19 + i, 27 + i, 3 + i],
+    intervalMs: 150,
+    scale: el.closest('h1') ? 3.2 : 2.4,
+  });
 });

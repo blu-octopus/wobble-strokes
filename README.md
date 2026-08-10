@@ -14,6 +14,7 @@ Wobble generates pure SVG path data (`d` attribute strings) that render hand-dra
 **Key features:**
 - ✨ Variable-width strokes (procedurally generated, no filters)
 - 🎯 Deterministic output via seeded PRNG
+- Smooth seed morphs via `animateWobbleRibbon` / `seedTo`+`mix`
 - 📦 Zero dependencies, ~4KB gzipped
 - 🌐 Framework-agnostic: web, React Native, anywhere SVG paths render
 - ⚡ Fast: generates paths at render time, no precomputation needed
@@ -49,6 +50,29 @@ const svg = `<svg viewBox="0 0 200 100">
 ```
 
 See the [docs](https://wobble-svg.vercel.app) for why the output is a fill shape rather than a stroked line — that's the trick that makes true variable-width strokes possible.
+
+## Animate seeds
+
+Smoothly morph between patterns (same technique as the landing-page logo hover):
+
+```javascript
+import { roundedRectBoundary, animateWobbleRibbon } from 'wobble-svg';
+
+const boundary = roundedRectBoundary(200, 80, 16);
+
+function frame(now) {
+  const ribbon = animateWobbleRibbon(boundary, {
+    halfWidth: 1.2,
+    seeds: [2, 13, 25, 39],
+    progress: now / 180,
+  });
+  path.setAttribute('d', ribbon.ribbonPath);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+```
+
+Or blend two seeds with `seed` / `seedTo` / `mix` on `generateWobbleRibbon`.
 
 ## Documentation
 

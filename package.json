@@ -1,6 +1,6 @@
 {
   "name": "wobble-svg",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Variable-width hand-drawn SVG path generator for web and React Native. Deterministic, dependency-free, and tuned to procedural design systems.",
   "keywords": [
     "svg",

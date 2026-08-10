@@ -59,7 +59,7 @@ Yes, as a static shape — the returned path data works with standard SVG transf
 </svg>
 ```
 
-**Note:** the wobble itself isn't frame-by-frame animated — it's a shape generated once per call. To animate the *wobble pattern* changing over time, you'd regenerate the path with a different seed or noise offset each frame, which is more expensive and not something this library optimizes for yet (see [Roadmap](/roadmap)).
+**Animating the wobble pattern:** use `animateWobbleRibbon` (or `seed` + `seedTo` + `mix` on `generateWobbleRibbon`) to morph smoothly between seeds — the same approach as the landing-page logo hover. Drive `progress` from `requestAnimationFrame` or any RN clock; see [API](/api#animatewobbleribbon).
 
 ### Does this work with React Native?
 

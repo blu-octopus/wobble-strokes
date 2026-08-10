@@ -243,3 +243,28 @@ Every consumer passes a different `seed` (so no two components wobble in lockste
 ---
 
 See [API Reference](/api) for all available functions and options.
+
+## Animate between seeds
+
+Morph the wobble pattern smoothly — same idea as the landing-page logo hover. Drive `progress` from `requestAnimationFrame` (or any RN clock):
+
+```javascript
+import { roundedRectBoundary, animateWobbleRibbon } from 'wobble-svg';
+
+const boundary = roundedRectBoundary(200, 80, 16);
+const path = document.querySelector('#stroke');
+
+function frame(now) {
+  const ribbon = animateWobbleRibbon(boundary, {
+    halfWidth: 1.2,
+    seeds: [2, 13, 25, 39],
+    progress: now / 180, // one seed hop every 180ms
+  });
+  path.setAttribute('d', ribbon.ribbonPath);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+```
+
+Or blend two seeds manually with `seed` / `seedTo` / `mix` on `generateWobbleRibbon`. For a thin web helper, see `startWobbleSeedAnimation` in the [API](/api#animatewobbleribbon).
+

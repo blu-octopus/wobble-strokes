@@ -7,6 +7,7 @@ Wobble's development roadmap for the coming months. Dates are estimates and subj
 **Released:** Q4 2025
 
 - Core path generation (`generateWobblePath`, `generateWobbleRibbon`)
+- Seed animation (`animateWobbleRibbon`, `seedTo`/`mix` blends)
 - Boundary helpers (`roundedRectBoundary`, `openPolylineBoundary`)
 - Seeded, dependency-free PRNG (`mulberry32`) and continuous noise (`smoothNoise1D`)
 - True variable-width ribbons (`widthVariance`), not just position jitter

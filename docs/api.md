@@ -88,6 +88,8 @@ const svg = `<svg viewBox="0 0 160 48">
 ```typescript
 interface WobbleOptions {
   seed?: number;           // default: 1
+  seedTo?: number;         // optional second seed to morph toward
+  mix?: number;            // 0..1 blend between seed and seedTo (default 0)
   frequency?: number;      // default: 0.05
   wiggle?: number;         // default: 1.5
   smoothen?: number;       // default: 0.5
@@ -98,12 +100,60 @@ interface WobbleOptions {
 ```
 
 - **`seed`** — Integer seed for the deterministic PRNG. Fixed per instance, not randomized per render — same seed always reproduces the same wobble.
+- **`seedTo`** — Optional second seed. When set, noise is blended toward this seed by `mix` so the ribbon morphs smoothly (same technique as the landing-page logo hover).
+- **`mix`** — Blend factor in `[0, 1]` between `seed` and `seedTo`. Clamped. Ignored unless `seedTo` is set.
 - **`frequency`** — How tightly the wobble oscillates along the boundary's arc-length. Lower = slower, more organic changes; higher = rapid wiggles.
 - **`wiggle`** — How far the centerline itself jitters, in px (the *position* wobble, distinct from width).
 - **`smoothen`** — 0-1 smoothing pass strength; higher softens jitter into gentler curves. Applied as a moving average over neighboring samples.
 - **`halfWidth`** — Base half-width of the ribbon, in px (roughly `strokeWidth / 2`). No default — always required. After variance is applied, width is floored at **0.4px** so the ribbon never collapses to a hairline.
 - **`widthVariance`** — How much the width itself varies, as a fraction of `halfWidth` (0 = constant width, matching a normal stroke).
 - **`closed`** — Whether the input boundary is a closed loop (`roundedRectBoundary`) or an open run (`openPolylineBoundary`). Defaults to `true`. Must match the boundary you pass in.
+
+---
+
+## `animateWobbleRibbon()`
+
+Animate endpoint: sample a ribbon partway through a seed cycle. Consecutive seeds are blended with `seed` / `seedTo` / `mix` under the hood — the same smooth morph the site wordmark uses on hover.
+
+```typescript
+function animateWobbleRibbon(
+  boundary: BoundarySample[],
+  options: WobbleAnimateOptions
+): WobbleRibbon;
+```
+
+```typescript
+interface WobbleAnimateOptions extends WobbleOptions {
+  seeds?: number[];     // default: [seed, seed+11, seed+23, seed+37]
+  progress: number;     // REQUIRED — continuous; wraps across the seed list
+  ease?: (t: number) => number; // default: smoothstep
+}
+```
+
+### Example
+
+```javascript
+import { roundedRectBoundary, animateWobbleRibbon } from 'wobble-svg';
+
+const boundary = roundedRectBoundary(200, 80, 16);
+
+function frame(now) {
+  const ribbon = animateWobbleRibbon(boundary, {
+    halfWidth: 1.2,
+    seeds: [2, 13, 25, 39],
+    progress: now / 180, // one seed hop every 180ms
+  });
+  strokePath.setAttribute('d', ribbon.ribbonPath);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+```
+
+Also exported:
+
+- **`startWobbleSeedAnimation(boundary, { intervalMs, onFrame, ... })`** — thin `requestAnimationFrame` helper (throws if rAF is missing; RN can drive `animateWobbleRibbon` with its own clock).
+- **`resolveSeedCycle(progress, seeds, ease?)`** — maps progress → `{ seed, seedTo, mix, index }`.
+- **`smoothstep(t)`** — default ease.
 
 ---
 

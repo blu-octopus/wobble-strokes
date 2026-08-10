@@ -82,7 +82,7 @@ Note the `fill-rule="evenodd"`: a wobble ribbon is a *filled band* (outer bounda
 
 **Wobble can:** Variable-width strokes, deterministic (seeded), zero deps, web + React Native support, splice custom shapes (notches, tails) directly into a boundary before wobbling it.
 
-**Wobble can't:** Complex sketchy aesthetics (Rough.js' specialty), frame-by-frame animated generation, non-path output (Canvas pixel art, WebGL).
+**Wobble can't:** Complex sketchy aesthetics (Rough.js' specialty), non-path output (Canvas pixel art, WebGL). Seed morphs via `animateWobbleRibbon` are supported; rough-style hatch fills are not.
 
 ## Real-world usage
 

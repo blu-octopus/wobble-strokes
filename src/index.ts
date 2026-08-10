@@ -12,6 +12,12 @@ export {
 export {
   generateWobblePath,
   generateWobbleRibbon,
+  animateWobbleRibbon,
+  startWobbleSeedAnimation,
+  resolveSeedCycle,
+  smoothstep,
   type WobbleOptions,
+  type WobbleAnimateOptions,
   type WobbleRibbon,
+  type SeedCycleFrame,
 } from './wobble';

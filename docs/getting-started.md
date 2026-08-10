@@ -1,108 +1,95 @@
-# Getting Started
+# Getting started
 
-## Installation
+Six primitives for hand-drawn SVG ribbons. Most projects only ever need `roundedRectBoundary` and `generateWobbleRibbon`. The rest is here when you want open tails, fonts, or dialogue bubbles.
 
-Install Wobble from npm:
+## Install
 
-```bash
+Install wobble-svg, then import it wherever your interface runs.
+
+::: code-group
+
+```bash [npm]
 npm install wobble-svg
 ```
 
-## Quick Example
+```bash [pnpm]
+pnpm add wobble-svg
+```
 
-Generate a wobbly rounded rectangle:
+```bash [yarn]
+yarn add wobble-svg
+```
 
-```javascript
-import { roundedRectBoundary, generateWobblePath } from 'wobble-svg';
+:::
 
-// 1. Sample the boundary of a rounded rectangle into a dense point list —
-//    each sample carries its position, outward normal, and running arc-length.
-const boundary = roundedRectBoundary(
-  200, // width
-  100, // height
-  10   // corner radius
-);
+ESM + CJS builds, zero runtime dependencies, and safe to use on web or React Native (path data only �X no DOM APIs).
 
-// 2. Perturb that boundary into a hand-drawn, variable-width ribbon path
-const pathData = generateWobblePath(boundary, {
-  seed: 42,             // reproducible wobble
-  halfWidth: 1,          // required — roughly desired stroke width / 2
-  frequency: 0.05,       // how often the wobble oscillates along the boundary
-  wiggle: 1,             // how far the centerline itself jitters, in px
-  smoothen: 0.5,         // 0-1 smoothing pass — higher softens jitter into gentler curves
-  widthVariance: 0.5     // 0-1 how much the width itself varies
+## Quick start
+
+Sample a shape boundary, generate a ribbon, fill both paths with `evenodd`.
+
+::: code-group
+
+```js [app.js]
+import {
+  roundedRectBoundary,
+  generateWobbleRibbon,
+} from 'wobble-svg';
+
+const boundary = roundedRectBoundary(200, 80, 16);
+const ribbon = generateWobbleRibbon(boundary, {
+  seed: 42,
+  halfWidth: 1.2,
+  frequency: 0.05,
+  wiggle: 1.2,
+  closed: true,
 });
 
-// 3. Render — a wobble path is a FILLED band (outer + inner boundary), not
-//    a stroked line, so it renders with `fill`, not `stroke`.
-const svg = `
-  <svg viewBox="0 0 200 100" width="200" height="100">
-    <path d="${pathData}" fill="#333" fill-rule="evenodd" />
-  </svg>
-`;
-
-console.log(svg);
+// <path d={ribbon.fillPath} fill="white" />
+// <path d={ribbon.ribbonPath} fill="#2b2420" fill-rule="evenodd" />
 ```
 
-Result: a hand-drawn, variable-width rectangular border with organic wobble.
-
-## Why fill, not stroke?
-
-Native SVG `stroke-width` is a single constant along the whole path — there's no way to make it thicker in the middle and thinner at the ends. Wobble sidesteps this by generating the **outer and inner edges of the band as two separate boundaries**, then filling the ring between them (`fill-rule="evenodd"` punches the inner boundary out of the outer one). That's what makes true variable-width strokes possible — and why the output is a fill shape, not something you stroke.
-
-If you only need the outer silhouette (e.g. as a mask or a solid fill shape, not a ring), `generateWobbleRibbon()` also returns `fillPath` — see [API Reference](/api).
-
-## Core Concepts
-
-### Deterministic output
-
-The `seed` parameter ensures the same input always produces the same wobble. Perfect for:
-- Design systems (every instance of a component renders identically)
-- Testing (predictable SVG output)
-- Reproducible generative art (same seed = same result)
-
-```javascript
-// These always produce identical paths
-const path1 = generateWobblePath(boundary, { seed: 42, halfWidth: 1 });
-const path2 = generateWobblePath(boundary, { seed: 42, halfWidth: 1 });
-// path1 === path2
+```html [index.html]
+<svg viewBox="0 0 200 80" width="200" height="80">
+  <path id="fill" fill="#fffdf8" />
+  <path id="stroke" fill="#2b2420" fill-rule="evenodd" />
+</svg>
 ```
 
-### Variable-width strokes
+:::
 
-Unlike Rough.js (constant width) or native SVG (filters), Wobble generates a ribbon whose width varies along its length. This creates a refined, hand-drawn feel rather than a uniform sketchy line.
+## Concepts
 
-The `widthVariance` parameter (0-1) controls how much width varies:
-- `0` — uniform width, close to a constant stroke
-- `0.5` — moderate variation (a balanced, natural look)
-- `1.0` — maximum variation (organic, flowing)
+### Why fill, not stroke?
+
+Native SVG `stroke-width` is constant along a path. Wobble builds the **outer and inner edges of a band**, then fills the ring (`fill-rule="evenodd"`). That is what unlocks true variable width.
+
+`generateWobbleRibbon()` returns:
+
+- `ribbonPath` �X the stroke band (use with evenodd)
+- `fillPath` �X the outer silhouette (paper fill, masks, solid shapes)
+
+### Deterministic seeds
+
+Same `seed` �� same path. Use it for design systems, tests, and reproducible generative UI.
+
+```js
+const a = generateWobbleRibbon(boundary, { seed: 42, halfWidth: 1, closed: true });
+const b = generateWobbleRibbon(boundary, { seed: 42, halfWidth: 1, closed: true });
+// a.ribbonPath === b.ribbonPath
+```
 
 ### Boundaries, not raw points
 
-Wobble doesn't take a plain `{x, y}[]` array — it takes a `BoundarySample[]`, where each sample also carries an outward **normal** (which way is "outside" at that point) and a running **arc-length** (`t`, distance traveled so far along the boundary). The normal is what lets Wobble offset a point outward/inward to build the ribbon's two edges; the arc-length is what the noise function samples from, so the wobble reads as one continuous line instead of static per-point jitter.
+Start from a boundary helper (`roundedRectBoundary`, `openPolylineBoundary`, or a dialogue-bubble splice), then one ribbon pass. See [API](/api) and [Examples](/examples).
 
-You don't usually construct `BoundarySample[]` by hand — use the helpers:
-- **`roundedRectBoundary(width, height, radius)`** — closed loop (a rect or, if `radius >= min(width, height) / 2`, a full pill/stadium shape)
-- **`openPolylineBoundary(points)`** — an open run through a plain `Point[]`, for shapes that shouldn't close into a loop (like one edge of a tail). Sparse vertices are densified along each edge automatically.
 
-### Options reference
+::: tip Animate seeds
+Use `animateWobbleRibbon` (or `seed` + `seedTo` + `mix`) to morph smoothly between patterns — see [API](/api#animatewobbleribbon).
+:::
 
-```typescript
-interface WobbleOptions {
-  seed?: number;           // default: 1 — fixed per instance, not randomized per render
-  frequency?: number;      // default: 0.05 — how tightly the wobble oscillates
-  wiggle?: number;         // default: 1.5 — how far the centerline itself jitters, in px
-  smoothen?: number;       // default: 0.5 — 0-1 smoothing pass strength
-  halfWidth: number;       // REQUIRED — base half-width of the ribbon, in px
-  widthVariance?: number;  // default: 0.5 — 0-1, how much the width itself varies
-  closed?: boolean;        // default: true — is the input boundary a loop or an open run?
-}
-```
+## Next
 
-`closed` must match whichever boundary helper you used: `true` for `roundedRectBoundary`, `false` for `openPolylineBoundary`.
-
-## Next Steps
-
-- **[Examples](/examples)** — More use cases and patterns, including a real design-system integration
-- **[API Reference](/api)** — Full function documentation
-- **[FAQ](/faq)** — Common questions answered
+- Live studio on the [landing page](https://blu-octopus.github.io/wobble-strokes/)
+- Full surface area in [API reference](/api)
+- Production patterns in [Examples](/examples)

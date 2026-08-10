@@ -5,6 +5,7 @@
 import {
   roundedRectBoundary,
   generateWobbleRibbon,
+  resolveSeedCycle,
   segmentNormal,
 } from './vendor/wobble-svg.mjs';
 
@@ -42,6 +43,8 @@ export function attachWobbleBorder(el, initial = {}) {
   const state = {
     radius: 14,
     seed: 1,
+    seedTo: undefined,
+    mix: 0,
     halfWidth: 1,
     color: 'var(--ink)',
     frequency: 0.05,
@@ -85,7 +88,7 @@ export function attachWobbleBorder(el, initial = {}) {
       Math.max(state.radius - state.halfWidth, 0),
     ).map((p) => ({ ...p, x: p.x + inset, y: p.y + inset }));
 
-    const ribbon = generateWobbleRibbon(boundary, {
+    const ribbonOpts = {
       seed: state.seed,
       halfWidth: state.halfWidth,
       frequency: state.frequency,
@@ -93,7 +96,12 @@ export function attachWobbleBorder(el, initial = {}) {
       smoothen: state.smoothen,
       widthVariance: state.widthVariance,
       closed: true,
-    });
+    };
+    if (state.seedTo !== undefined) {
+      ribbonOpts.seedTo = state.seedTo;
+      ribbonOpts.mix = state.mix ?? 0;
+    }
+    const ribbon = generateWobbleRibbon(boundary, ribbonOpts);
 
     strokePathEl.setAttribute('d', ribbon.ribbonPath);
     strokePathEl.setAttribute('fill', state.color);
@@ -155,28 +163,133 @@ export function attachInteractiveButton(el, borderHandle, { baseSeed } = {}) {
   return borderHandle;
 }
 
-/** Cycle border seeds while hovered, restore on leave. */
+/** Smoothly morph border seeds while hovered, restore on leave. */
 export function attachHoverSeedCycle(
   el,
   borderHandle,
   { homeSeed, seeds = [homeSeed, homeSeed + 11, homeSeed + 23, homeSeed + 37], intervalMs = 180 } = {},
 ) {
-  let timer = null;
-  let i = 0;
+  let raf = 0;
+  let t0 = 0;
+
+  const stop = () => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  };
+
+  const tick = (now) => {
+    const progress = (now - t0) / intervalMs;
+    const frame = resolveSeedCycle(progress, seeds);
+    borderHandle.update({
+      seed: frame.seed,
+      seedTo: frame.seedTo,
+      mix: frame.mix,
+    });
+    raf = requestAnimationFrame(tick);
+  };
 
   el.addEventListener('pointerenter', () => {
+    stop();
+    t0 = performance.now();
+    raf = requestAnimationFrame(tick);
+  });
+
+  el.addEventListener('pointerleave', () => {
+    stop();
+    borderHandle.update({ seed: homeSeed, seedTo: undefined, mix: 0 });
+  });
+}
+
+/** Keep a wobble border morphing seeds forever (live indicators, etc.). */
+export function attachContinuousSeedCycle(
+  borderHandle,
+  { seeds = [1, 12, 24, 36, 1], intervalMs = 180 } = {},
+) {
+  if (!borderHandle) return () => {};
+  let raf = 0;
+  const t0 = performance.now();
+
+  const tick = (now) => {
+    const progress = (now - t0) / intervalMs;
+    const frame = resolveSeedCycle(progress, seeds);
+    borderHandle.update({
+      seed: frame.seed,
+      seedTo: frame.seedTo,
+      mix: frame.mix,
+    });
+    raf = requestAnimationFrame(tick);
+  };
+
+  raf = requestAnimationFrame(tick);
+  return () => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  };
+}
+
+/**
+ * Hover: apply SVG displacement filter and cycle turbulence seed
+ * so typography visibly wobbles, then restore on leave.
+ */
+export function attachHoverTextWobble(
+  el,
+  {
+    noiseEl = document.getElementById('wobble-text-noise'),
+    displaceEl = document.getElementById('wobble-text-displace'),
+    homeSeed = 3,
+    seeds = [3, 11, 19, 27, 3],
+    intervalMs = 140,
+    scale = 2.4,
+  } = {},
+) {
+  if (!el || !noiseEl || !displaceEl) return;
+  let timer = null;
+  let i = 0;
+  const homeScale = Number(displaceEl.getAttribute('scale') || 2.2);
+
+  el.addEventListener('pointerenter', () => {
+    el.classList.add('is-wobbling');
+    displaceEl.setAttribute('scale', String(scale));
     i = 0;
+    noiseEl.setAttribute('seed', String(seeds[0]));
     timer = window.setInterval(() => {
       i = (i + 1) % seeds.length;
-      borderHandle.update({ seed: seeds[i] });
+      noiseEl.setAttribute('seed', String(seeds[i]));
     }, intervalMs);
   });
 
   el.addEventListener('pointerleave', () => {
     if (timer) window.clearInterval(timer);
     timer = null;
-    borderHandle.update({ seed: homeSeed });
+    el.classList.remove('is-wobbling');
+    noiseEl.setAttribute('seed', String(homeSeed));
+    displaceEl.setAttribute('scale', String(homeScale));
   });
+}
+
+/**
+ * Always-on text wobble via a dedicated SVG displacement filter
+ * (defaults to #wobble-text-filter-live so hover text stays independent).
+ */
+export function attachContinuousTextWobble(
+  el,
+  {
+    noiseEl = document.getElementById('wobble-text-noise-live'),
+    displaceEl = document.getElementById('wobble-text-displace-live'),
+    seeds = [11, 19, 27, 35, 11],
+    intervalMs = 150,
+    scale = 3.2,
+  } = {},
+) {
+  if (!el || !noiseEl || !displaceEl) return () => {};
+  let i = 0;
+  displaceEl.setAttribute('scale', String(scale));
+  noiseEl.setAttribute('seed', String(seeds[0]));
+  const timer = window.setInterval(() => {
+    i = (i + 1) % seeds.length;
+    noiseEl.setAttribute('seed', String(seeds[i]));
+  }, intervalMs);
+  return () => window.clearInterval(timer);
 }
 
 // --- Dialogue bubble: one continuous boundary with a densified scalene tail ---
