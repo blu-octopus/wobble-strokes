@@ -186,7 +186,7 @@ code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 72px;
   flex-shrink: 0;
 }
 
@@ -1143,7 +1143,7 @@ code {
   }
 
   .fold-bar {
-    margin-bottom: 28px;
+    margin-bottom: 36px;
     gap: 10px;
     min-width: 0;
   }
@@ -1453,6 +1453,10 @@ code {
   .fold {
     /* ~100¡V140px peek of section 2 on common laptop heights */
     padding-block: 12px 40px;
+  }
+
+  .fold-bar {
+    margin-bottom: 112px;
   }
 
   .fold-grid {
