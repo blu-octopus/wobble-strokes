@@ -167,13 +167,31 @@ code {
   position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 7px 14px;
+  gap: 8px;
+  padding: 4px 2px;
   text-decoration: none;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 16px;
   color: var(--ink);
   border-radius: var(--radius-pill);
+}
+
+/* The brand "seed" - orange pip that echoes the library's seeded PRNG. */
+.brand-seed {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  /* Flat fallback before JS; SVG fill replaces this with a wobbly pip. */
+  background: #c1502e;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.brand-seed:has(.wobble-border-svg) {
+  background: transparent;
 }
 
 .wordmark-label {

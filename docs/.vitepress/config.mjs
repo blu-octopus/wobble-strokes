@@ -4,6 +4,15 @@ export default defineConfig({
   title: 'Wobble',
   description: 'Variable-width hand-drawn SVG paths. Deterministic, dependency-free, web and React Native.',
   lang: 'en-US',
+  // Patched esbuild (via package overrides) rejects VitePress's old browser targets.
+  vite: {
+    build: {
+      target: 'es2022',
+    },
+    esbuild: {
+      target: 'es2022',
+    },
+  },
   head: [
     ['meta', { name: 'theme-color', content: '#c2a783' }],
     ['meta', { name: 'og:type', content: 'website' }],
@@ -44,20 +53,11 @@ export default defineConfig({
     ],
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2025 blu-octopus',
+      copyright: 'Copyright ? 2025 blu-octopus',
     },
     editLink: {
       pattern: 'https://github.com/blu-octopus/wobble-strokes/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
-  },
-  markdown: {
-    codeTransformers: [
-      {
-        preprocess(code) {
-          return code
-        },
-      },
-    ],
   },
 })

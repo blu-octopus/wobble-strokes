@@ -52,10 +52,6 @@ const specs = [
   { name: 'favicon-32.svg', size: 32, seed: 2 },
   { name: 'favicon-48.svg', size: 48, seed: 2 },
   { name: 'favicon-128.svg', size: 128, seed: 2 },
-  { name: 'favicon-seed-a.svg', size: 48, seed: 2 },
-  { name: 'favicon-seed-b.svg', size: 48, seed: 13 },
-  { name: 'favicon-seed-c.svg', size: 48, seed: 25 },
-  { name: 'favicon-seed-d.svg', size: 48, seed: 39 },
   { name: 'apple-touch-icon.svg', size: 180, seed: 2 },
 ];
 

@@ -94,7 +94,7 @@ function boundaryFor(shape) {
         h = 88;
       const ox = (CANVAS_W - w) / 2;
       const oy = 36;
-      // Leave room below for the spliced tail (TAIL_DEPTH ? 19).
+      // Leave room below for the spliced tail (~TAIL_DEPTH + lift).
       const boundary = buildDialogueBubbleBoundary(w, h, state.strokeWidth).map((p) => ({
         ...p,
         x: p.x + ox,
@@ -103,7 +103,7 @@ function boundaryFor(shape) {
       return { closed: true, label: `dialogue bubble ${w}x${h}`, boundary };
     }
     case 'font':
-      return { closed: true, label: `font ¡P ${state.fontFamily.split(',')[0].replace(/'/g, '')}`, boundary: null };
+      return { closed: true, label: `font - ${state.fontFamily.split(',')[0].replace(/'/g, '')}`, boundary: null };
     default:
       throw new Error(`unknown shape: ${shape}`);
   }
@@ -298,6 +298,7 @@ document.querySelectorAll('.shape-item').forEach((item) => {
     document.querySelectorAll('.shape-item').forEach((el) => el.classList.remove('active'));
     item.classList.add('active');
     state.shape = item.dataset.shape;
+    syncShapeChipBorders();
     // Bubbles look best denser - nudge frequency when switching in.
     if (state.shape === 'bubble') {
       if (state.frequency < 0.12) {
@@ -344,8 +345,6 @@ async function copyInstall(btn) {
 }
 
 const primaryBtn = document.getElementById('btn-primary');
-primaryBtn.addEventListener('click', () => copyInstall(primaryBtn));
-
 const installChip = document.getElementById('install-chip');
 installChip.addEventListener('click', () => copyInstall(installChip));
 
@@ -353,14 +352,32 @@ renderCanvas();
 
 // Borders + interactions (compact layout)
 attachWobbleBorders('[data-wobble-panel]', { radius: 14, halfWidth: 1.15, seed: 10 });
-attachWobbleBorders('.shape-item', { radius: 999, halfWidth: 0.9, seed: 40, frequency: 0.08 });
 attachWobbleBorders('.benefit', { radius: 14, halfWidth: 1.1, seed: 80 });
+
+const shapeBorders = attachWobbleBorders('.shape-item', {
+  radius: 999,
+  halfWidth: 0.9,
+  seed: 40,
+  frequency: 0.08,
+  color: 'var(--ink-soft)',
+});
+
+function syncShapeChipBorders() {
+  document.querySelectorAll('.shape-item').forEach((el, i) => {
+    const active = el.classList.contains('active');
+    shapeBorders[i]?.update({
+      color: active ? 'var(--ink)' : 'var(--ink-soft)',
+      halfWidth: active ? 1.05 : 0.85,
+    });
+  });
+}
+syncShapeChipBorders();
 
 const primary = attachWobbleBorder(primaryBtn, {
   radius: 999,
   halfWidth: 1.45,
   seed: 2,
-  // Filled button: stroke matches fill (ink on ink), not the page background.
+  // Filled: stroke matches fill (ink on ink).
   color: 'var(--ink)',
   fill: 'var(--ink)',
 });
@@ -400,15 +417,21 @@ attachWobbleBorder(document.getElementById('badge-tertiary'), {
   frequency: 0.08,
 });
 
-const wordmark = document.getElementById('wordmark');
-const wordmarkBorder = attachWobbleBorder(wordmark, {
+// Brand seed: orange pip with matching wobble stroke; cycles on wordmark hover.
+const brandSeed = document.getElementById('brand-seed');
+const seedBorder = attachWobbleBorder(brandSeed, {
   radius: 999,
-  halfWidth: 1.15,
+  halfWidth: 1.35,
   seed: 2,
-  frequency: 0.07,
-  wiggle: 1.1,
+  frequency: 0.16,
+  wiggle: 1.25,
+  widthVariance: 0.65,
+  // Stroke matches the seed fill (same rule as filled CTAs).
+  color: '#c1502e',
+  fill: '#c1502e',
 });
-attachHoverSeedCycle(wordmark, wordmarkBorder, {
+const wordmark = document.getElementById('wordmark');
+attachHoverSeedCycle(wordmark, seedBorder, {
   homeSeed: 2,
   seeds: [2, 13, 25, 39, 2],
   intervalMs: 160,

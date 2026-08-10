@@ -1,9 +1,7 @@
 // Chrome for the landing page itself: every panel, button, and pill on this
-// page is bordered by the real library, not CSS `border`. This is the same
-// "generated overlay" pattern documented in examples.md (WobbleBorder), just
-// framework-free - measure the element, sample a rounded-rect boundary,
-// perturb it, and drop the resulting ribbon in as an absolutely-positioned
-// <svg> behind the element's own content.
+// page is bordered by the real library, not CSS border. Framework-free:
+// measure the element, sample a rounded-rect boundary, perturb it, and drop
+// the ribbon in as an absolutely-positioned SVG behind the content.
 import {
   roundedRectBoundary,
   generateWobbleRibbon,
@@ -133,7 +131,7 @@ export function attachWobbleBorders(selector, initial = {}) {
 
 /**
  * Hover: slight scale-up + re-roll wobble seed.
- * Press: scale-down + SVG/CSS spark particles (capy-ui Sparks).
+ * Press: scale-down + spark particles.
  */
 export function attachInteractiveButton(el, borderHandle, { baseSeed } = {}) {
   el.classList.add('btn-interactive');
@@ -157,8 +155,12 @@ export function attachInteractiveButton(el, borderHandle, { baseSeed } = {}) {
   return borderHandle;
 }
 
-/** Wordmark: cycle seeds while hovered, restore on leave. */
-export function attachHoverSeedCycle(el, borderHandle, { homeSeed, seeds = [homeSeed, homeSeed + 11, homeSeed + 23, homeSeed + 37], intervalMs = 180 } = {}) {
+/** Cycle border seeds while hovered, restore on leave. */
+export function attachHoverSeedCycle(
+  el,
+  borderHandle,
+  { homeSeed, seeds = [homeSeed, homeSeed + 11, homeSeed + 23, homeSeed + 37], intervalMs = 180 } = {},
+) {
   let timer = null;
   let i = 0;
 
@@ -177,89 +179,110 @@ export function attachHoverSeedCycle(el, borderHandle, { homeSeed, seeds = [home
   });
 }
 
-// --- Dialogue bubble splice (ported from capy-ui DialogueBubble) ---
+// --- Dialogue bubble: one continuous boundary with a densified scalene tail ---
 
-const TAIL_HALF_BASE = 7.75;
-const TAIL_APEX_FRACTION = 0.677;
-const TAIL_DEPTH = 19;
-/** Pull base vertices into the body so the ribbon meets the bottom stroke without a gap. */
-const TAIL_BLEND_IN = 3.5;
-const TAIL_STEP = 3;
+const TAIL_HALF_BASE = 11;
+const TAIL_APEX_FRACTION = 0.62;
+const TAIL_DEPTH = 17;
+/** Raise joins slightly into the stroke band so edges meet without a gap. */
+const TAIL_LIFT = 3;
+const TAIL_STEP = 2;
 const BUBBLE_CORNER_RADIUS = 24;
 
-function edgeCenterline(edge, width, height, strokeWidth) {
-  const half = strokeWidth / 2;
-  switch (edge) {
-    case 'bottom':
-      return height - half;
-    case 'top':
-      return half;
-    case 'right':
-      return width - half;
-    case 'left':
-      return half;
-  }
-}
-
-/** Dense samples along a polyline so the ribbon keeps the same weight as the bubble body. */
 function densifySegment(a, b, stepPx = TAIL_STEP) {
   const len = Math.hypot(b.x - a.x, b.y - a.y);
-  const steps = Math.max(1, Math.round(len / stepPx));
+  const steps = Math.max(2, Math.round(len / stepPx));
   const out = [];
-  for (let s = 1; s <= steps; s++) {
+  for (let s = 1; s < steps; s++) {
     const f = s / steps;
     out.push({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, nx: 0, ny: 0, t: 0 });
   }
   return out;
 }
 
+/** Recompute normals from neighbors; flip any that point toward the centroid. */
+function remiterOutward(result) {
+  const n = result.length;
+  let cx = 0;
+  let cy = 0;
+  for (const p of result) {
+    cx += p.x;
+    cy += p.y;
+  }
+  cx /= n;
+  cy /= n;
+
+  const next = result.map((curr, i) => {
+    const prev = result[(i - 1 + n) % n];
+    const following = result[(i + 1) % n];
+    const n1 = segmentNormal(prev, curr);
+    const n2 = segmentNormal(curr, following);
+    let nx = n1.nx + n2.nx;
+    let ny = n1.ny + n2.ny;
+    const len = Math.hypot(nx, ny) || 1;
+    nx /= len;
+    ny /= len;
+    if (nx * (curr.x - cx) + ny * (curr.y - cy) < 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    return { ...curr, nx, ny };
+  });
+  for (let i = 0; i < n; i++) result[i] = next[i];
+}
+
 /**
- * Build a closed bubble boundary with a scalene tail spliced into the bottom edge.
- * Tail bases sit slightly inside the body and edges are densified so stroke weight
- * matches the rest of the bubble and the join reads continuous.
+ * Closed bubble boundary with a scalene bottom tail as one continuous sample run.
+ * Bottom-edge samples in the notch span are removed (no overlapping bottom stroke).
+ *
+ * Important: roundedRectBoundary walks the bottom edge right -> left, so the
+ * notch must be inserted as right-join -> apex -> left-join to keep winding.
  */
 export function buildDialogueBubbleBoundary(width, height, strokeWidth = 1.5) {
   const inset = strokeWidth / 2;
-  const innerW = width - strokeWidth;
-  const innerH = height - strokeWidth;
+  const half = strokeWidth / 2;
+  const innerW = Math.max(width - strokeWidth, 1);
+  const innerH = Math.max(height - strokeWidth, 1);
   const radius = Math.min(innerH / 2, BUBBLE_CORNER_RADIUS);
-  const base = roundedRectBoundary(innerW, innerH, radius).map((p) => ({
+  const body = roundedRectBoundary(innerW, innerH, radius).map((p) => ({
     ...p,
     x: p.x + inset,
     y: p.y + inset,
   }));
 
-  const along = Math.min(Math.max(width * 0.5, BUBBLE_CORNER_RADIUS), width - BUBBLE_CORNER_RADIUS);
-  const centerline = edgeCenterline('bottom', width, height, strokeWidth);
-  // Lift the whole notch into the bottom stroke band so outer edges meet.
-  const lift = TAIL_BLEND_IN;
-  const baseY = centerline - lift;
-  const aWalk = along - TAIL_HALF_BASE;
-  const bWalk = along + TAIL_HALF_BASE;
-  const apexWalk = aWalk + (bWalk - aWalk) * TAIL_APEX_FRACTION;
-  const apexOutward = centerline + TAIL_DEPTH - lift;
+  const along = width * 0.5;
+  const bottomY = height - half;
+  // Lift only within the stroke band (legacy separate-tail overlap fix).
+  const lift = Math.min(TAIL_LIFT, half * 0.9);
+  const baseY = bottomY - lift;
+  const leftX = along - TAIL_HALF_BASE;
+  const rightX = along + TAIL_HALF_BASE;
+  const apexX = leftX + (rightX - leftX) * TAIL_APEX_FRACTION;
+  const apexY = bottomY + TAIL_DEPTH - lift;
 
-  const pointA = { x: aWalk, y: baseY };
-  const apex = { x: apexWalk, y: apexOutward };
-  const pointB = { x: bWalk, y: baseY };
-  const minWalk = Math.min(aWalk, bWalk);
-  const maxWalk = Math.max(aWalk, bWalk);
+  const pointRight = { x: rightX, y: baseY };
+  const apex = { x: apexX, y: apexY };
+  const pointLeft = { x: leftX, y: baseY };
 
-  // Dense notch: A ¡÷ apex ¡÷ B at the same ~4px spacing as roundedRectBoundary.
+  // Winding: right -> apex -> left (matches bottom travel direction).
   const notch = [
-    { ...pointA, nx: 0, ny: 0, t: 0 },
-    ...densifySegment(pointA, apex),
-    ...densifySegment(apex, pointB),
+    { ...pointRight, nx: 0, ny: 0, t: 0 },
+    ...densifySegment(pointRight, apex),
+    { ...apex, nx: 0, ny: 0, t: 0 },
+    ...densifySegment(apex, pointLeft),
+    { ...pointLeft, nx: 0, ny: 0, t: 0 },
   ];
+
+  const removeLo = leftX - 0.75;
+  const removeHi = rightX + 0.75;
 
   const result = [];
   let inserted = false;
-  let insertAt = -1;
-  for (const sample of base) {
-    const onEdge = sample.nx === 0 && sample.ny === 1;
-    if (onEdge && sample.x > minWalk && sample.x < maxWalk) {
+  for (const sample of body) {
+    const onBottom = sample.ny > 0.85 && Math.abs(sample.nx) < 0.5 && sample.y > height * 0.55;
+    const inNotch = onBottom && sample.x >= removeLo && sample.x <= removeHi;
+    if (inNotch) {
       if (!inserted) {
-        insertAt = result.length;
         result.push(...notch);
         inserted = true;
       }
@@ -269,37 +292,13 @@ export function buildDialogueBubbleBoundary(width, height, strokeWidth = 1.5) {
   }
 
   if (!inserted) {
-    // Fallback: append before the last bottom-edge samples if range missed.
-    insertAt = result.length;
-    result.push(...notch);
+    const insertAt = Math.max(0, Math.floor(result.length * 0.55));
+    result.splice(insertAt, 0, ...notch);
   }
+
+  remiterOutward(result);
 
   const n = result.length;
-  const start = insertAt;
-  const end = insertAt + notch.length;
-  for (let i = start; i < end; i++) {
-    const prev = result[(i - 1 + n) % n];
-    const next = result[(i + 1) % n];
-    const n1 = segmentNormal(prev, result[i]);
-    const n2 = segmentNormal(result[i], next);
-    const nx = n1.nx + n2.nx;
-    const ny = n1.ny + n2.ny;
-    const len = Math.hypot(nx, ny) || 1;
-    result[i] = { ...result[i], nx: nx / len, ny: ny / len };
-  }
-
-  // Also remiter the samples immediately before/after the notch so the join is continuous.
-  for (const i of [(start - 1 + n) % n, end % n]) {
-    const prev = result[(i - 1 + n) % n];
-    const next = result[(i + 1) % n];
-    const n1 = segmentNormal(prev, result[i]);
-    const n2 = segmentNormal(result[i], next);
-    const nx = n1.nx + n2.nx;
-    const ny = n1.ny + n2.ny;
-    const len = Math.hypot(nx, ny) || 1;
-    result[i] = { ...result[i], nx: nx / len, ny: ny / len };
-  }
-
   let t = 0;
   result[0] = { ...result[0], t: 0 };
   for (let i = 1; i < n; i++) {
