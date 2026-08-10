@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      Not a page — a fixed 1200x630 canvas for regenerating assets/og-image.png.
+      Rebuild it with headless Chrome after any brand/copy change:
+        google-chrome --headless=new --window-size=1200,630 \
+          --screenshot=site/assets/og-image.png http://localhost:5183/og-image.html
+    -->
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>wobble svg — OG image source</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&family=M+PLUS+Rounded+1c:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Fixed 1200x630 canvas — this page exists only to be screenshotted
+         at that exact size for the site's og:image / twitter:image. */
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .og-wordmark {
+        position: absolute;
+        top: 40px;
+        left: 48px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 22px;
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .og-wordmark .brand-seed {
+        width: 11px;
+        height: 11px;
+      }
+      .og-studio {
+        width: 920px;
+        margin-top: 8px;
+      }
+      .og-studio .studio-canvas {
+        max-height: 260px;
+        min-height: 260px;
+      }
+      .og-studio .canvas-font-text {
+        font-size: 4.5rem;
+      }
+      .og-tagline {
+        position: absolute;
+        bottom: 40px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <filter id="wobble-text-filter" x="-12%" y="-35%" width="124%" height="170%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+    </svg>
+
+    <a class="og-wordmark" href="#">
+      <span class="brand-seed" id="brand-seed" aria-hidden="true"></span>
+      <span>wobble svg</span>
+    </a>
+
+    <div class="studio og-studio" data-wobble-panel>
+      <div class="studio-top">
+        <span class="studio-kicker">
+          <span class="studio-live-dot" id="studio-live-dot" aria-hidden="true"></span>
+          Live studio
+        </span>
+        <span class="pane-note">font · seed 42</span>
+      </div>
+
+      <ul class="shape-chips" role="list">
+        <li class="shape-item">Rect</li>
+        <li class="shape-item">Pill</li>
+        <li class="shape-item">Circle</li>
+        <li class="shape-item">Tail</li>
+        <li class="shape-item">Bubble</li>
+        <li class="shape-item active">Font</li>
+      </ul>
+
+      <div class="studio-canvas">
+        <div class="canvas-font">
+          <p class="canvas-font-text" style="font-family: 'M PLUS Rounded 1c', sans-serif">wobble svg</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="og-tagline">Variable-width hand-drawn SVG paths for web and React Native.</p>
+
+    <script type="module">
+      import { attachWobbleBorder } from './wobble-ui.js';
+      attachWobbleBorders_inline();
+      function attachWobbleBorders_inline() {
+        document.querySelectorAll('[data-wobble-panel]').forEach((el, i) =>
+          attachWobbleBorder(el, { radius: 16, halfWidth: 1.4, seed: 12 + i }),
+        );
+        attachWobbleBorder(document.getElementById('brand-seed'), {
+          radius: 999,
+          halfWidth: 1,
+          seed: 2,
+          fill: 'var(--brand)',
+        });
+        attachWobbleBorder(document.getElementById('studio-live-dot'), {
+          radius: 999,
+          halfWidth: 0.8,
+          seed: 4,
+          fill: 'var(--brand)',
+        });
+      }
+    </script>
+  </body>
+</html>

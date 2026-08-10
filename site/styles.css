@@ -20,7 +20,7 @@
   --section-title-gap: 36px;
   --section-block-gap: 32px;
 
-  /* Shared type scale ¡X same role = same size across sections */
+  /* Shared type scale â€” same role = same size across sections */
   --text-kicker: 12px;
   --text-label: 12px;
   --text-h2: clamp(1.5rem, 3vw, 2rem);
@@ -1178,7 +1178,7 @@ code {
   }
 
   .fold-grid {
-    /* Stacked pitch ¡÷ studio: tight enough to peek the next block */
+    /* Stacked pitch â†’ studio: tight enough to peek the next block */
     gap: 56px;
     width: 100%;
     min-width: 0;
@@ -1452,7 +1452,7 @@ code {
 /* Desktop hero: always left-aligned (mobile centering stays in max-width queries above) */
 @media (min-width: 901px) {
   .fold {
-    /* ~100¡V140px peek of section 2 on common laptop heights */
+    /* ~100â€“140px peek of section 2 on common laptop heights */
     padding-block: 12px 40px;
   }
 
