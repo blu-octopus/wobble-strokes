@@ -11,6 +11,11 @@ docs/.vitepress/dist/
 docs/.vitepress/cache/
 site/vendor/
 
+# Local debug / preview artifacts (bubble splice experiments, etc.)
+site/_*.svg
+site/_*.svg.png
+site/_*.png
+
 # Environment
 .env
 .env.local

@@ -17,7 +17,7 @@
   "homepage": "https://blu-octopus.github.io/wobble-strokes/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/blu-octopus/wobble-strokes"
+    "url": "git+https://github.com/blu-octopus/wobble-strokes.git"
   },
   "main": "dist/index.js",
   "exports": {
@@ -38,6 +38,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "site:prepare": "mkdir -p site/vendor && cp dist/index.mjs site/vendor/wobble-svg.mjs",
+    "site:favicons": "npm run build && node scripts/generate-favicons.mjs",
     "site:dev": "npm run build && npm run site:prepare && npx --yes serve site -l 5183",
     "test": "vitest run"
   },
@@ -46,6 +47,10 @@
     "typescript": "^5.3.0",
     "vitepress": "^1.0.0",
     "vitest": "^3.0.0"
+  },
+  "overrides": {
+    "esbuild": "0.28.2",
+    "vite": "6.4.3"
   },
   "engines": {
     "node": ">=14.0.0"
