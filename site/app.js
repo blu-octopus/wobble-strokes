@@ -767,3 +767,53 @@ document.querySelectorAll('.wobble-hover-text').forEach((el, i) => {
     scale: el.closest('h1') ? 3.2 : 2.4,
   });
 });
+
+// ---------- Scroll-reveal for major sections ----------
+// Each .reveal section fades/rises in the first time it crosses into view;
+// unobserving after the first hit keeps this a one-way "appear", not a
+// toggle that re-hides content when the visitor scrolls back up.
+const revealEls = document.querySelectorAll('.reveal');
+if (revealEls.length) {
+  const revealObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      }
+    },
+    { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
+  );
+  revealEls.forEach((el) => revealObserver.observe(el));
+}
+
+// ---------- Light 3D tilt on the benefit cards ----------
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const MAX_TILT_DEG = 6;
+  document.querySelectorAll('.benefit').forEach((card) => {
+    const tiltFromPointer = (e) => {
+      const rect = card.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width;
+      const py = (e.clientY - rect.top) / rect.height;
+      const rotateY = (px - 0.5) * 2 * MAX_TILT_DEG;
+      const rotateX = (0.5 - py) * 2 * MAX_TILT_DEG;
+      card.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`);
+      card.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`);
+    };
+    card.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'touch') return;
+      card.classList.add('is-tilting');
+      tiltFromPointer(e);
+    });
+    card.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      tiltFromPointer(e);
+    });
+    card.addEventListener('pointerleave', (e) => {
+      if (e.pointerType === 'touch') return;
+      card.classList.remove('is-tilting');
+      card.style.setProperty('--tilt-x', '0deg');
+      card.style.setProperty('--tilt-y', '0deg');
+    });
+  });
+}

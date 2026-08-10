@@ -98,6 +98,30 @@ code {
   transform: scale(0.94);
 }
 
+/* Sections fade + rise into place the first time they cross into view
+   (see app.js's IntersectionObserver); .is-visible is added once and
+   never removed, so scrolling back up doesn't re-hide content. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 .sparks {
   position: absolute;
   left: 50%;
@@ -801,6 +825,23 @@ code {
   background: var(--panel);
   border-radius: var(--radius-lg);
   min-height: 100%;
+  /* Light 3D tilt — app.js sets --tilt-x/--tilt-y from pointer position on
+     hover and clears them on leave; the slower leave transition (set via
+     .is-settling below) is what makes the card ease back instead of snap. */
+  transform: perspective(800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.benefit.is-tilting {
+  transition: transform 60ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .benefit {
+    transform: none !important;
+    transition: none;
+  }
 }
 
 .benefit-visual {
