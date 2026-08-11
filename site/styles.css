@@ -586,7 +586,16 @@ code {
 .toggle-row {
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.toggle-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .mini-btn {
