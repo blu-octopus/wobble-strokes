@@ -206,12 +206,30 @@ code {
   flex-direction: column;
 }
 
+/* Sticky nav bar - own full-width background + wobble divider so it reads
+   as a fixed shelf above the rest of the page, not a see-through overlay. */
+.site-header-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--paper);
+  padding-top: 14px;
+  margin-bottom: 72px;
+}
+
 .fold-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 72px;
   flex-shrink: 0;
+}
+
+.header-divider {
+  position: relative;
+  width: 100%;
+  height: 9px;
+  margin-top: -2px;
+  pointer-events: none;
 }
 
 .wordmark {
@@ -1223,8 +1241,11 @@ code {
     overflow-x: clip;
   }
 
-  .fold-bar {
+  .site-header-bar {
     margin-bottom: 36px;
+  }
+
+  .fold-bar {
     gap: 10px;
     min-width: 0;
   }
@@ -1429,8 +1450,11 @@ code {
     padding-block: 14px 48px;
   }
 
-  .fold-bar {
+  .site-header-bar {
     margin-bottom: 20px;
+  }
+
+  .fold-bar {
     gap: 8px;
   }
 
@@ -1536,7 +1560,7 @@ code {
     padding-block: 12px 40px;
   }
 
-  .fold-bar {
+  .site-header-bar {
     margin-bottom: 112px;
   }
 

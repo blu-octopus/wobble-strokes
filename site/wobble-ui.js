@@ -4,6 +4,7 @@
 // the ribbon in as an absolutely-positioned SVG behind the content.
 import {
   roundedRectBoundary,
+  openPolylineBoundary,
   generateWobbleRibbon,
   resolveSeedCycle,
   segmentNormal,
@@ -135,6 +136,84 @@ export function attachWobbleBorders(selector, initial = {}) {
   return Array.from(document.querySelectorAll(selector)).map((el, i) =>
     attachWobbleBorder(el, { ...initial, seed: (initial.seed ?? 1) + i }),
   );
+}
+
+/**
+ * A single hand-drawn horizontal rule, full width of `el` - the open-line
+ * counterpart to attachWobbleBorder's closed rounded-rect. Used for the
+ * sticky nav bar's bottom divider so it stays a wobble stroke, not a flat
+ * CSS border, like everything else on this page.
+ */
+export function attachWobbleDivider(el, initial = {}) {
+  const state = {
+    seed: 5,
+    halfWidth: 1.1,
+    color: 'var(--ink)',
+    frequency: 0.05,
+    wiggle: 1,
+    smoothen: 0.5,
+    widthVariance: 0.4,
+    ...initial,
+  };
+
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'wobble-divider-svg');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.style.position = 'absolute';
+  svg.style.inset = '0';
+  svg.style.width = '100%';
+  svg.style.height = '100%';
+  svg.style.pointerEvents = 'none';
+  svg.style.overflow = 'visible';
+
+  const strokePathEl = document.createElementNS(SVG_NS, 'path');
+  strokePathEl.setAttribute('fill-rule', 'evenodd');
+  svg.appendChild(strokePathEl);
+
+  const computed = getComputedStyle(el);
+  if (computed.position === 'static') el.style.position = 'relative';
+  el.appendChild(svg);
+
+  function redraw() {
+    const w = el.clientWidth;
+    const h = el.clientHeight;
+    if (w <= 1 || h <= 1) return;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+    const y = h / 2;
+    const boundary = openPolylineBoundary([
+      { x: 0, y },
+      { x: w, y },
+    ]);
+    const ribbon = generateWobbleRibbon(boundary, {
+      seed: state.seed,
+      halfWidth: state.halfWidth,
+      frequency: state.frequency,
+      wiggle: state.wiggle,
+      smoothen: state.smoothen,
+      widthVariance: state.widthVariance,
+      closed: false,
+    });
+
+    strokePathEl.setAttribute('d', ribbon.ribbonPath);
+    strokePathEl.setAttribute('fill', state.color);
+  }
+
+  redraw();
+  const ro = new ResizeObserver(() => redraw());
+  ro.observe(el);
+
+  return {
+    redraw,
+    update(patch) {
+      Object.assign(state, patch);
+      redraw();
+    },
+    destroy() {
+      ro.disconnect();
+      svg.remove();
+    },
+  };
 }
 
 /**

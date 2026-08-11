@@ -8,6 +8,7 @@ import {
 import {
   attachWobbleBorder,
   attachWobbleBorders,
+  attachWobbleDivider,
   attachInteractiveButton,
   attachHoverSeedCycle,
   attachContinuousSeedCycle,
@@ -596,6 +597,9 @@ function paintBenefitDemos() {
 paintBenefitDemos();
 
 // Borders + interactions (compact layout)
+const headerDivider = document.getElementById('header-divider');
+if (headerDivider) attachWobbleDivider(headerDivider, { seed: 3, halfWidth: 1.1 });
+
 attachWobbleBorders('[data-wobble-panel]', { radius: 14, halfWidth: 1.15, seed: 10 });
 const benefitBorders = attachWobbleBorders('.benefit', { radius: 14, halfWidth: 1.1, seed: 80 });
 document.querySelectorAll('.benefit').forEach((el, i) => {
@@ -935,8 +939,10 @@ const setCue = (selector, attr, sound) => {
   document.querySelectorAll(selector).forEach((el) => el.setAttribute(attr, sound || ''));
 };
 
-// Buttons: a physical two-part press/release, like a key going down and
-// springing back - covers both the "pressed" feel and the click itself.
+// Buttons: a soft hover cue builds anticipation, then a physical two-part
+// press/release on the click itself, like a key going down and springing
+// back.
+setCue('.btn-interactive, .mini-btn, .copy-prompt, .copy-icon-btn', 'data-cuelume-hover', 'whisper');
 setCue('.btn-interactive, .mini-btn, .copy-prompt, .copy-icon-btn', 'data-cuelume-press', '');
 setCue('.btn-interactive, .mini-btn, .copy-prompt, .copy-icon-btn', 'data-cuelume-release', '');
 
@@ -957,9 +963,9 @@ setCue('#ctl-fill, #ctl-animate', 'data-cuelume-toggle', '');
 // proof screenshots) get a soft ambient hover instead of a sharp tick.
 setCue('.tilt-card, [data-wobble-panel]', 'data-cuelume-hover', 'bloom');
 
-// Hover-wobble headings get a playful sparkle to match the wobble itself.
-setCue('.wobble-hover-text', 'data-cuelume-hover', 'sparkle');
-
+// Hover-wobble headings inside a card rely on the card's own bloom hover
+// above - a second sound on the heading would double up. Standalone
+// headings get their own continuous drone below instead of a cuelume cue.
 bindCueSounds();
 
 // Sliders: a soft tick per drag step, throttled so dragging doesn't turn
@@ -974,3 +980,104 @@ document.querySelectorAll('input[type="range"]').forEach((input) => {
     playCue('tick', { volume: 0.5 });
   });
 });
+
+// ---------- Continuous text-wobble hover drone ----------
+// A separate, non-cuelume effect for standalone .wobble-hover-text headings:
+// a low, gritty drone that swells in on hover and holds for as long as the
+// pointer stays, instead of a single one-shot "ding" - it echoes the visual
+// wobble continuously rather than announcing it once. Headings inside a
+// card are excluded (the card's own bloom hover already covers them, and
+// stacking a second, different sound on top read as noisy/sharp).
+if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  let droneCtx = null;
+  let noiseBuffer = null;
+  let activeVoice = null;
+
+  const getDroneContext = () => {
+    if (!droneCtx) droneCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return droneCtx;
+  };
+
+  const getNoiseBuffer = (ctx) => {
+    if (noiseBuffer) return noiseBuffer;
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    noiseBuffer = buffer;
+    return buffer;
+  };
+
+  const stopDrone = (immediate = false) => {
+    if (!activeVoice) return;
+    const { master, nodes } = activeVoice;
+    const ctx = droneCtx;
+    const now = ctx.currentTime;
+    const release = immediate ? 0.02 : 0.18;
+    master.gain.cancelScheduledValues(now);
+    master.gain.setValueAtTime(master.gain.value, now);
+    master.gain.linearRampToValueAtTime(0, now + release);
+    nodes.forEach((n) => n.stop(now + release + 0.02));
+    activeVoice = null;
+  };
+
+  const startDrone = () => {
+    const ctx = getDroneContext();
+    if (ctx.state === 'suspended') ctx.resume();
+    stopDrone(true);
+
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0, now);
+    master.gain.linearRampToValueAtTime(0.045, now + 0.14);
+    master.connect(ctx.destination);
+
+    // Low tone, gently wobbling in pitch - mirrors the visual wobble.
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(68, now);
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(5.5, now);
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.setValueAtTime(4, now);
+    lfo.connect(lfoGain).connect(osc.frequency);
+    const toneFilter = ctx.createBiquadFilter();
+    toneFilter.type = 'lowpass';
+    toneFilter.frequency.setValueAtTime(300, now);
+    const toneGain = ctx.createGain();
+    toneGain.gain.setValueAtTime(0.6, now);
+    osc.connect(toneFilter).connect(toneGain).connect(master);
+
+    // Filtered noise bed for the "scratchy" texture.
+    const noise = ctx.createBufferSource();
+    noise.buffer = getNoiseBuffer(ctx);
+    noise.loop = true;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(340, now);
+    noiseFilter.Q.setValueAtTime(0.9, now);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.45, now);
+    noise.connect(noiseFilter).connect(noiseGain).connect(master);
+
+    osc.start(now);
+    lfo.start(now);
+    noise.start(now);
+
+    activeVoice = { master, nodes: [osc, lfo, noise] };
+  };
+
+  window.addEventListener('blur', () => stopDrone());
+
+  document.querySelectorAll('.wobble-hover-text').forEach((el) => {
+    if (el.closest('.tilt-card, [data-wobble-panel]')) return;
+    el.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'touch') return;
+      startDrone();
+    });
+    el.addEventListener('pointerleave', (e) => {
+      if (e.pointerType === 'touch') return;
+      stopDrone();
+    });
+  });
+}

@@ -96,9 +96,9 @@
       </defs>
     </svg>
 
-    <!-- Section 1: single-viewport value pitch (split: copy | live studio) -->
-    <header class="fold page" id="top">
-      <div class="fold-bar">
+    <!-- Fixed nav bar - sticky across the whole page, own wobble divider at its foot -->
+    <header class="site-header-bar" id="site-header-bar">
+      <div class="fold-bar page">
         <a class="wordmark" id="wordmark" href="#top" aria-label="wobble svg home">
           <span class="brand-seed" id="brand-seed" title="seed" aria-hidden="true"></span>
           <span class="wordmark-label" id="wordmark-label">wobble svg</span>
@@ -125,6 +125,11 @@
           >
         </nav>
       </div>
+      <div class="header-divider" id="header-divider" aria-hidden="true"></div>
+    </header>
+
+    <!-- Section 1: single-viewport value pitch (split: copy | live studio) -->
+    <div class="fold page" id="top">
 
       <div class="fold-grid">
         <div class="pitch">
@@ -315,7 +320,7 @@
           </div>
         </aside>
       </div>
-    </header>
+    </div>
 
     <!-- Section 2: three benefits -->
     <section class="benefits page reveal" id="why">
