@@ -961,9 +961,9 @@ setCue('#ctl-fill, #ctl-animate', 'data-cuelume-toggle', '');
 
 // Big surfaces (benefit cards, the final CTA card, the studio panel, the
 // proof screenshots) get a soft ambient hover instead of a sharp tick.
-setCue('.tilt-card, [data-wobble-panel]', 'data-cuelume-hover', 'bloom');
+setCue('.tilt-card, [data-wobble-panel]', 'data-cuelume-hover', 'loading');
 
-// Hover-wobble headings inside a card rely on the card's own bloom hover
+// Hover-wobble headings inside a card rely on the card's own hover cue
 // above - a second sound on the heading would double up. Standalone
 // headings get their own continuous drone below instead of a cuelume cue.
 bindCueSounds();
@@ -988,7 +988,7 @@ document.querySelectorAll('input[type="range"]').forEach((input) => {
 // it stays - pitch rises/falls with vertical position, pan follows
 // horizontal position, so it reads like a pencil tracing the stroke rather
 // than a static hum. Headings inside a card are excluded (the card's own
-// bloom hover already covers them, and a second sound on top read as noisy).
+// hover cue already covers them, and a second sound on top read as noisy).
 if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
   let scratchCtx = null;
   let noiseBuffer = null;
