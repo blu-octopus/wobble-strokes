@@ -981,21 +981,26 @@ document.querySelectorAll('input[type="range"]').forEach((input) => {
   });
 });
 
-// ---------- Continuous text-wobble hover drone ----------
-// A separate, non-cuelume effect for standalone .wobble-hover-text headings:
-// a low, gritty drone that swells in on hover and holds for as long as the
-// pointer stays, instead of a single one-shot "ding" - it echoes the visual
-// wobble continuously rather than announcing it once. Headings inside a
-// card are excluded (the card's own bloom hover already covers them, and
-// stacking a second, different sound on top read as noisy/sharp).
+// ---------- Continuous text-hover "scratching paper" sfx ----------
+// A separate, non-cuelume effect for standalone .wobble-hover-text headings
+// and the logo: a subtle, higher-pitched paper-scratch texture (filtered
+// noise, no low tone) that swells in on hover and tracks the cursor while
+// it stays - pitch rises/falls with vertical position, pan follows
+// horizontal position, so it reads like a pencil tracing the stroke rather
+// than a static hum. Headings inside a card are excluded (the card's own
+// bloom hover already covers them, and a second sound on top read as noisy).
 if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-  let droneCtx = null;
+  let scratchCtx = null;
   let noiseBuffer = null;
   let activeVoice = null;
 
-  const getDroneContext = () => {
-    if (!droneCtx) droneCtx = new (window.AudioContext || window.webkitAudioContext)();
-    return droneCtx;
+  const SCRATCH_BASE_FREQ = 1500;
+  const SCRATCH_HEIGHT_VARIATION = 550; // Hz swing across the element's full height
+  const SCRATCH_LFO_DEPTH = 140; // Hz - constant grit, independent of cursor position
+
+  const getScratchContext = () => {
+    if (!scratchCtx) scratchCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return scratchCtx;
   };
 
   const getNoiseBuffer = (ctx) => {
@@ -1007,12 +1012,12 @@ if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     return buffer;
   };
 
-  const stopDrone = (immediate = false) => {
+  const stopScratch = (immediate = false) => {
     if (!activeVoice) return;
     const { master, nodes } = activeVoice;
-    const ctx = droneCtx;
+    const ctx = scratchCtx;
     const now = ctx.currentTime;
-    const release = immediate ? 0.02 : 0.18;
+    const release = immediate ? 0.02 : 0.15;
     master.gain.cancelScheduledValues(now);
     master.gain.setValueAtTime(master.gain.value, now);
     master.gain.linearRampToValueAtTime(0, now + release);
@@ -1020,64 +1025,73 @@ if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     activeVoice = null;
   };
 
-  const startDrone = () => {
-    const ctx = getDroneContext();
+  const startScratch = () => {
+    const ctx = getScratchContext();
     if (ctx.state === 'suspended') ctx.resume();
-    stopDrone(true);
+    stopScratch(true);
 
     const now = ctx.currentTime;
     const master = ctx.createGain();
     master.gain.setValueAtTime(0, now);
-    master.gain.linearRampToValueAtTime(0.045, now + 0.14);
-    master.connect(ctx.destination);
+    master.gain.linearRampToValueAtTime(0.03, now + 0.1);
 
-    // Low tone, gently wobbling in pitch - mirrors the visual wobble.
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(68, now);
+    const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    master.connect(panner || ctx.destination);
+    if (panner) panner.connect(ctx.destination);
+
+    // Bandpass-filtered noise, no tone layer - a higher, papery scratch
+    // instead of a low hum.
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(SCRATCH_BASE_FREQ, now);
+    filter.Q.setValueAtTime(1.4, now);
+
     const lfo = ctx.createOscillator();
     lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(5.5, now);
+    lfo.frequency.setValueAtTime(7.5, now);
     const lfoGain = ctx.createGain();
-    lfoGain.gain.setValueAtTime(4, now);
-    lfo.connect(lfoGain).connect(osc.frequency);
-    const toneFilter = ctx.createBiquadFilter();
-    toneFilter.type = 'lowpass';
-    toneFilter.frequency.setValueAtTime(300, now);
-    const toneGain = ctx.createGain();
-    toneGain.gain.setValueAtTime(0.6, now);
-    osc.connect(toneFilter).connect(toneGain).connect(master);
+    lfoGain.gain.setValueAtTime(SCRATCH_LFO_DEPTH, now);
+    lfo.connect(lfoGain).connect(filter.frequency);
 
-    // Filtered noise bed for the "scratchy" texture.
     const noise = ctx.createBufferSource();
     noise.buffer = getNoiseBuffer(ctx);
     noise.loop = true;
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.setValueAtTime(340, now);
-    noiseFilter.Q.setValueAtTime(0.9, now);
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.45, now);
-    noise.connect(noiseFilter).connect(noiseGain).connect(master);
+    noiseGain.gain.setValueAtTime(0.5, now);
+    noise.connect(filter).connect(noiseGain).connect(master);
 
-    osc.start(now);
     lfo.start(now);
     noise.start(now);
 
-    activeVoice = { master, nodes: [osc, lfo, noise] };
+    activeVoice = { master, filter, panner, nodes: [lfo, noise] };
   };
 
-  window.addEventListener('blur', () => stopDrone());
+  const updateScratch = (px, py) => {
+    if (!activeVoice) return;
+    const now = scratchCtx.currentTime;
+    const heightOffset = (0.5 - py) * 2 * SCRATCH_HEIGHT_VARIATION;
+    activeVoice.filter.frequency.setTargetAtTime(SCRATCH_BASE_FREQ + heightOffset, now, 0.03);
+    if (activeVoice.panner) {
+      activeVoice.panner.pan.setTargetAtTime(Math.max(-1, Math.min(1, (px - 0.5) * 2)), now, 0.03);
+    }
+  };
 
-  document.querySelectorAll('.wobble-hover-text').forEach((el) => {
+  window.addEventListener('blur', () => stopScratch());
+
+  document.querySelectorAll('.wobble-hover-text, .wordmark').forEach((el) => {
     if (el.closest('.tilt-card, [data-wobble-panel]')) return;
     el.addEventListener('pointerenter', (e) => {
       if (e.pointerType === 'touch') return;
-      startDrone();
+      startScratch();
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      const rect = el.getBoundingClientRect();
+      updateScratch((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height);
     });
     el.addEventListener('pointerleave', (e) => {
       if (e.pointerType === 'touch') return;
-      stopDrone();
+      stopScratch();
     });
   });
 }

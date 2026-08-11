@@ -106,6 +106,10 @@ MIT — see [LICENSE](LICENSE) for details.
 
 Issues, feature requests, and PRs welcome! See [GitHub](https://github.com/blu-octopus/wobble-strokes) for the repo.
 
+## Credits
+
+The [landing page](https://blu-octopus.github.io/wobble-strokes/)'s interaction sound design runs on [cuelume](https://cuelume.dev/), by [Daniel White](https://www.danielwhite.uk/). Design input from [Kevin Doyle](https://kevdoy.com/opensource.html).
+
 ## Quick Links
 
 - 🎨 [Live Demo & Studio](https://blu-octopus.github.io/wobble-strokes/)

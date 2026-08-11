@@ -1218,6 +1218,12 @@ code {
   color: var(--ink);
 }
 
+.site-footer-credits {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+}
+
 .site-footer-nav {
   display: flex;
   align-items: center;
