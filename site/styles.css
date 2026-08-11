@@ -825,20 +825,24 @@ code {
   background: var(--panel);
   border-radius: var(--radius-lg);
   min-height: 100%;
-  /* Light 3D tilt — app.js sets --tilt-x/--tilt-y from pointer position on
-     hover and clears them on leave; the slower leave transition (set via
-     .is-settling below) is what makes the card ease back instead of snap. */
+}
+
+/* Light 3D tilt, shared by the benefit cards and the final CTA card
+   (app.js targets every .tilt-card). Desktop: --tilt-x/--tilt-y follow the
+   pointer and clear on leave. Touch: they follow the device's own tilt via
+   DeviceOrientation instead, since there's no hover/pointer to read. */
+.tilt-card {
   transform: perspective(800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
   transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
-.benefit.is-tilting {
+.tilt-card.is-tilting {
   transition: transform 60ms linear;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .benefit {
+  .tilt-card {
     transform: none !important;
     transition: none;
   }

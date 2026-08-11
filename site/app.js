@@ -787,33 +787,98 @@ if (revealEls.length) {
   revealEls.forEach((el) => revealObserver.observe(el));
 }
 
-// ---------- Light 3D tilt on the benefit cards ----------
+// ---------- Light 3D tilt: pointer (desktop) or device orientation (mobile) ----------
+// Shared by the 3 benefit cards and the final "Ship with wobble today" CTA
+// card - anything marked .tilt-card in the HTML.
 if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   const MAX_TILT_DEG = 6;
-  document.querySelectorAll('.benefit').forEach((card) => {
-    const tiltFromPointer = (e) => {
-      const rect = card.getBoundingClientRect();
-      const px = (e.clientX - rect.left) / rect.width;
-      const py = (e.clientY - rect.top) / rect.height;
-      const rotateY = (px - 0.5) * 2 * MAX_TILT_DEG;
-      const rotateX = (0.5 - py) * 2 * MAX_TILT_DEG;
-      card.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`);
-      card.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`);
+  const tiltCards = document.querySelectorAll('.tilt-card');
+
+  const setTilt = (card, rotateX, rotateY) => {
+    card.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`);
+    card.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`);
+  };
+
+  if (tiltCards.length && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    // Desktop / mouse: tilt follows cursor position within the card.
+    tiltCards.forEach((card) => {
+      const tiltFromPointer = (e) => {
+        const rect = card.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width;
+        const py = (e.clientY - rect.top) / rect.height;
+        setTilt(card, (0.5 - py) * 2 * MAX_TILT_DEG, (px - 0.5) * 2 * MAX_TILT_DEG);
+      };
+      card.addEventListener('pointerenter', (e) => {
+        if (e.pointerType === 'touch') return;
+        card.classList.add('is-tilting');
+        tiltFromPointer(e);
+      });
+      card.addEventListener('pointermove', (e) => {
+        if (e.pointerType === 'touch') return;
+        tiltFromPointer(e);
+      });
+      card.addEventListener('pointerleave', (e) => {
+        if (e.pointerType === 'touch') return;
+        card.classList.remove('is-tilting');
+        setTilt(card, 0, 0);
+      });
+    });
+  } else if (tiltCards.length && typeof DeviceOrientationEvent !== 'undefined') {
+    // Touch / coarse-pointer: no hover to read, so tilt the cards with the
+    // phone's own tilt instead. beta/gamma deltas are measured from
+    // whatever orientation the visitor is already holding the phone at
+    // (the first reading), not from "flat" - holding a phone dead level
+    // isn't a real resting position, so a fixed zero point would make the
+    // cards sit permanently tilted for most people.
+    let baseline = null;
+    let current = { x: 0, y: 0 };
+    let raf = 0;
+
+    const handleOrientation = (e) => {
+      if (e.beta === null || e.gamma === null) return;
+      if (!baseline) baseline = { beta: e.beta, gamma: e.gamma };
+
+      const dBeta = Math.max(-30, Math.min(30, e.beta - baseline.beta));
+      const dGamma = Math.max(-30, Math.min(30, e.gamma - baseline.gamma));
+      const targetX = (-dBeta / 30) * MAX_TILT_DEG;
+      const targetY = (dGamma / 30) * MAX_TILT_DEG;
+
+      // Low-pass filter - raw sensor deltas are jittery frame to frame,
+      // and a subtle effect reads as broken if it visibly judders.
+      current.x += (targetX - current.x) * 0.15;
+      current.y += (targetY - current.y) * 0.15;
+
+      if (!raf) {
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          tiltCards.forEach((card) => setTilt(card, current.x, current.y));
+        });
+      }
     };
-    card.addEventListener('pointerenter', (e) => {
-      if (e.pointerType === 'touch') return;
-      card.classList.add('is-tilting');
-      tiltFromPointer(e);
-    });
-    card.addEventListener('pointermove', (e) => {
-      if (e.pointerType === 'touch') return;
-      tiltFromPointer(e);
-    });
-    card.addEventListener('pointerleave', (e) => {
-      if (e.pointerType === 'touch') return;
-      card.classList.remove('is-tilting');
-      card.style.setProperty('--tilt-x', '0deg');
-      card.style.setProperty('--tilt-y', '0deg');
-    });
-  });
+
+    const enableDeviceTilt = () => {
+      tiltCards.forEach((card) => card.classList.add('is-tilting'));
+      window.addEventListener('deviceorientation', handleOrientation);
+    };
+
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS 13+ gates motion/orientation behind an explicit user gesture -
+      // there's no way to ask upfront, so the first tap anywhere doubles
+      // as the opt-in. A denial just leaves the cards flat, same as any
+      // other browser without DeviceOrientationEvent.
+      document.addEventListener(
+        'click',
+        () => {
+          DeviceOrientationEvent.requestPermission()
+            .then((state) => {
+              if (state === 'granted') enableDeviceTilt();
+            })
+            .catch(() => {});
+        },
+        { once: true },
+      );
+    } else {
+      enableDeviceTilt();
+    }
+  }
 }
