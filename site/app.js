@@ -996,7 +996,12 @@ if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
 
   const SCRATCH_BASE_FREQ = 1500;
   const SCRATCH_HEIGHT_VARIATION = 550; // Hz swing across the element's full height
-  const SCRATCH_LFO_DEPTH = 140; // Hz - constant grit, independent of cursor position
+  const SCRATCH_BOUNCE_DEPTH = 220; // Hz - peak size of each irregular bounce
+  // Same cadence as the studio's own seed animation, so the two "wobbles"
+  // feel like one idea rather than two coincidentally-timed effects.
+  const SCRATCH_BOUNCE_INTERVAL_MS = ANIMATE_INTERVAL_MS;
+
+  let bounceTimer = 0;
 
   const getScratchContext = () => {
     if (!scratchCtx) scratchCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1013,6 +1018,8 @@ if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
   };
 
   const stopScratch = (immediate = false) => {
+    window.clearTimeout(bounceTimer);
+    bounceTimer = 0;
     if (!activeVoice) return;
     const { master, nodes } = activeVoice;
     const ctx = scratchCtx;
@@ -1023,6 +1030,31 @@ if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     master.gain.linearRampToValueAtTime(0, now + release);
     nodes.forEach((n) => n.stop(now + release + 0.02));
     activeVoice = null;
+  };
+
+  // A steep climb to an overshot peak, a yo-yo rebound past center to a
+  // small undershoot, then a settle - repeated on an irregular cadence
+  // (jittered around SCRATCH_BOUNCE_INTERVAL_MS) so no two bounces look or
+  // sound quite the same, like an uneven hand-scratch rather than an LFO.
+  const scheduleBounce = () => {
+    if (!activeVoice) return;
+    const ctx = scratchCtx;
+    const now = ctx.currentTime;
+    const { bounceSource } = activeVoice;
+
+    const peak = SCRATCH_BOUNCE_DEPTH * (0.55 + Math.random() * 0.85);
+    const riseS = (SCRATCH_BOUNCE_INTERVAL_MS * (0.14 + Math.random() * 0.06)) / 1000;
+    const reboundS = (SCRATCH_BOUNCE_INTERVAL_MS * 0.3) / 1000;
+    const settleS = (SCRATCH_BOUNCE_INTERVAL_MS * 0.3) / 1000;
+
+    bounceSource.offset.cancelScheduledValues(now);
+    bounceSource.offset.setValueAtTime(bounceSource.offset.value, now);
+    bounceSource.offset.linearRampToValueAtTime(peak * 1.2, now + riseS);
+    bounceSource.offset.linearRampToValueAtTime(-peak * 0.25, now + riseS + reboundS);
+    bounceSource.offset.linearRampToValueAtTime(0, now + riseS + reboundS + settleS);
+
+    const jitterMs = SCRATCH_BOUNCE_INTERVAL_MS * (0.85 + Math.random() * 0.3);
+    bounceTimer = window.setTimeout(scheduleBounce, jitterMs);
   };
 
   const startScratch = () => {
@@ -1046,12 +1078,12 @@ if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     filter.frequency.setValueAtTime(SCRATCH_BASE_FREQ, now);
     filter.Q.setValueAtTime(1.4, now);
 
-    const lfo = ctx.createOscillator();
-    lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(7.5, now);
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.setValueAtTime(SCRATCH_LFO_DEPTH, now);
-    lfo.connect(lfoGain).connect(filter.frequency);
+    // Constant-source "LFO": its offset is automated in irregular bounce
+    // curves (see scheduleBounce) and sums directly into filter.frequency,
+    // additive with the pointer-driven base value set in updateScratch.
+    const bounceSource = ctx.createConstantSource();
+    bounceSource.offset.setValueAtTime(0, now);
+    bounceSource.connect(filter.frequency);
 
     const noise = ctx.createBufferSource();
     noise.buffer = getNoiseBuffer(ctx);
@@ -1060,10 +1092,11 @@ if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     noiseGain.gain.setValueAtTime(0.5, now);
     noise.connect(filter).connect(noiseGain).connect(master);
 
-    lfo.start(now);
+    bounceSource.start(now);
     noise.start(now);
 
-    activeVoice = { master, filter, panner, nodes: [lfo, noise] };
+    activeVoice = { master, filter, panner, bounceSource, nodes: [bounceSource, noise] };
+    scheduleBounce();
   };
 
   const updateScratch = (px, py) => {
