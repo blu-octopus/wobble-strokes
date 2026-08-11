@@ -959,9 +959,10 @@ setCue('.shape-item', 'data-cuelume-toggle', 'scan');
 // (a mechanical click-clack) needs no override.
 setCue('#ctl-fill, #ctl-animate', 'data-cuelume-toggle', '');
 
-// Big surfaces (benefit cards, the final CTA card, the studio panel, the
-// proof screenshots) get a soft ambient hover instead of a sharp tick.
-setCue('.tilt-card, [data-wobble-panel]', 'data-cuelume-hover', 'loading');
+// Benefit cards and the studio panel get a soft ambient hover instead of a
+// sharp tick. The code block, proof screenshot, and final CTA card stay
+// silent on hover.
+setCue('.benefit.tilt-card, #studio', 'data-cuelume-hover', 'loading');
 
 // Hover-wobble headings inside a card rely on the card's own hover cue
 // above - a second sound on the heading would double up. Standalone
