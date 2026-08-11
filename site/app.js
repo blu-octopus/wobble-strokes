@@ -794,6 +794,11 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   const MAX_TILT_DEG = 6;
   const tiltCards = document.querySelectorAll('.tilt-card');
 
+  // Most cards use MAX_TILT_DEG; a card can opt into a smaller max via
+  // data-tilt-max (the final CTA card wants less elevation than the
+  // benefit cards it shares this logic with).
+  const maxTiltFor = (card) => Number(card.dataset.tiltMax) || MAX_TILT_DEG;
+
   const setTilt = (card, rotateX, rotateY) => {
     card.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`);
     card.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`);
@@ -802,11 +807,12 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   if (tiltCards.length && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     // Desktop / mouse: tilt follows cursor position within the card.
     tiltCards.forEach((card) => {
+      const cardMaxTilt = maxTiltFor(card);
       const tiltFromPointer = (e) => {
         const rect = card.getBoundingClientRect();
         const px = (e.clientX - rect.left) / rect.width;
         const py = (e.clientY - rect.top) / rect.height;
-        setTilt(card, (0.5 - py) * 2 * MAX_TILT_DEG, (px - 0.5) * 2 * MAX_TILT_DEG);
+        setTilt(card, (0.5 - py) * 2 * cardMaxTilt, (px - 0.5) * 2 * cardMaxTilt);
       };
       card.addEventListener('pointerenter', (e) => {
         if (e.pointerType === 'touch') return;
@@ -840,8 +846,10 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 
       const dBeta = Math.max(-30, Math.min(30, e.beta - baseline.beta));
       const dGamma = Math.max(-30, Math.min(30, e.gamma - baseline.gamma));
-      const targetX = (-dBeta / 30) * MAX_TILT_DEG;
-      const targetY = (dGamma / 30) * MAX_TILT_DEG;
+      // Normalized -1..1 fraction of full tilt, not degrees, so each card
+      // can scale it by its own max (see maxTiltFor) below.
+      const targetX = -dBeta / 30;
+      const targetY = dGamma / 30;
 
       // Low-pass filter - raw sensor deltas are jittery frame to frame,
       // and a subtle effect reads as broken if it visibly judders.
@@ -851,7 +859,10 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       if (!raf) {
         raf = requestAnimationFrame(() => {
           raf = 0;
-          tiltCards.forEach((card) => setTilt(card, current.x, current.y));
+          tiltCards.forEach((card) => {
+            const cardMaxTilt = maxTiltFor(card);
+            setTilt(card, current.x * cardMaxTilt, current.y * cardMaxTilt);
+          });
         });
       }
     };
@@ -880,5 +891,29 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     } else {
       enableDeviceTilt();
     }
+  }
+
+  // Final-CTA buttons "pop" onto a layer above the card on hover, tilting
+  // toward the cursor - desktop/hover only (CSS gates the actual pop on
+  // `hover: hover` too, but skip the listeners entirely on touch since
+  // there's no hover to drive --pop-x/--pop-y from).
+  const popButtons = document.querySelectorAll('.btn-pop');
+  if (popButtons.length && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const MAX_BTN_TILT_DEG = 10;
+    popButtons.forEach((btn) => {
+      btn.addEventListener('pointermove', (e) => {
+        if (e.pointerType === 'touch') return;
+        const rect = btn.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width;
+        const py = (e.clientY - rect.top) / rect.height;
+        btn.style.setProperty('--pop-x', `${((0.5 - py) * 2 * MAX_BTN_TILT_DEG).toFixed(2)}deg`);
+        btn.style.setProperty('--pop-y', `${((px - 0.5) * 2 * MAX_BTN_TILT_DEG).toFixed(2)}deg`);
+      });
+      btn.addEventListener('pointerleave', (e) => {
+        if (e.pointerType === 'touch') return;
+        btn.style.setProperty('--pop-x', '0deg');
+        btn.style.setProperty('--pop-y', '0deg');
+      });
+    });
   }
 }
