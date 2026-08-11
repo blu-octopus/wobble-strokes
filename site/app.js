@@ -16,6 +16,7 @@ import {
   buildDialogueBubbleBoundary,
   spawnSparks,
 } from './wobble-ui.js';
+import { bind as bindCueSounds, play as playCue, setVolume as setCueVolume } from './vendor/cuelume/index.js';
 
 const CANVAS_W = 320;
 const CANVAS_H = 200;
@@ -417,9 +418,11 @@ copyBtn.addEventListener('click', async () => {
     await navigator.clipboard.writeText(snippet);
     const original = label.textContent;
     label.textContent = 'Copied!';
+    playCue('success');
     setTimeout(() => (label.textContent = original), 1400);
   } catch {
     console.warn('Clipboard write failed; snippet:\n' + snippet);
+    playCue('error');
   }
 });
 
@@ -430,12 +433,13 @@ async function copyInstall(btn) {
     const code = btn.querySelector('.copy-prompt-code');
     const original = code?.innerHTML;
     if (code) code.textContent = 'Copied!';
+    playCue('success');
     setTimeout(() => {
       btn.classList.remove('is-copied');
       if (code && original) code.innerHTML = original;
     }, 1400);
   } catch {
-    /* clipboard unavailable */
+    playCue('error');
   }
 }
 
@@ -453,9 +457,10 @@ starterCopy?.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(text);
     starterCopy.setAttribute('aria-label', 'Copied');
+    playCue('success');
     setTimeout(() => starterCopy.setAttribute('aria-label', 'Copy sample code'), 1400);
   } catch {
-    /* clipboard unavailable */
+    playCue('error');
   }
 });
 
@@ -477,12 +482,13 @@ ctaCopyPrompt?.addEventListener('click', async () => {
     if (label) label.textContent = 'Copied!';
     ctaCopyPrompt.classList.add('is-copied');
     spawnSparks(ctaCopyPrompt);
+    playCue('success');
     setTimeout(() => {
       if (label) label.textContent = original;
       ctaCopyPrompt.classList.remove('is-copied');
     }, 1400);
   } catch {
-    /* clipboard unavailable */
+    playCue('error');
   }
 });
 
@@ -917,3 +923,54 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     });
   }
 }
+
+// ---------- Interaction sounds (cuelume) ----------
+// cuelume's bind() wires declarative data-cuelume-* attributes for hover,
+// press, release, and click - assign those in bulk here by selector rather
+// than hand-editing every element in index.html. Sliders fire on 'input',
+// which bind() doesn't cover, so those get their own throttled listener.
+setCueVolume(0.6);
+
+const setCue = (selector, attr, sound) => {
+  document.querySelectorAll(selector).forEach((el) => el.setAttribute(attr, sound || ''));
+};
+
+// Buttons: a physical two-part press/release, like a key going down and
+// springing back - covers both the "pressed" feel and the click itself.
+setCue('.btn-interactive, .mini-btn, .copy-prompt, .copy-icon-btn', 'data-cuelume-press', '');
+setCue('.btn-interactive, .mini-btn, .copy-prompt, .copy-icon-btn', 'data-cuelume-release', '');
+
+// Plain nav/text links: a light hover tick, then a page-turn click before
+// they navigate away.
+setCue('.wordmark, .nav-quiet, .eyebrow a, .site-footer a', 'data-cuelume-hover', 'tick');
+setCue('.wordmark, .nav-quiet, .eyebrow a, .site-footer a', 'data-cuelume-toggle', 'page');
+
+// Shape chips in the studio are a menu of alternatives - a quick locator
+// scan fits better than a generic click.
+setCue('.shape-item', 'data-cuelume-toggle', 'scan');
+
+// Checkboxes are literal two-state switches - the default toggle sound
+// (a mechanical click-clack) needs no override.
+setCue('#ctl-fill, #ctl-animate', 'data-cuelume-toggle', '');
+
+// Big surfaces (benefit cards, the final CTA card, the studio panel, the
+// proof screenshots) get a soft ambient hover instead of a sharp tick.
+setCue('.tilt-card, [data-wobble-panel]', 'data-cuelume-hover', 'bloom');
+
+// Hover-wobble headings get a playful sparkle to match the wobble itself.
+setCue('.wobble-hover-text', 'data-cuelume-hover', 'sparkle');
+
+bindCueSounds();
+
+// Sliders: a soft tick per drag step, throttled so dragging doesn't turn
+// into a machine-gun of sound.
+const SLIDER_CUE_GAP_MS = 90;
+let lastSliderCueAt = -Infinity;
+document.querySelectorAll('input[type="range"]').forEach((input) => {
+  input.addEventListener('input', () => {
+    const now = performance.now();
+    if (now - lastSliderCueAt < SLIDER_CUE_GAP_MS) return;
+    lastSliderCueAt = now;
+    playCue('tick', { volume: 0.5 });
+  });
+});
